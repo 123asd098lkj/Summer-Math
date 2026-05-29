@@ -1,0 +1,1443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Math Quest Adventure!</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap');
+
+  :root {
+    --sky: #1a1a2e;
+    --deep: #16213e;
+    --mid: #0f3460;
+    --gold: #f5a623;
+    --bright: #e94560;
+    --green: #0f9b58;
+    --teal: #00d2d3;
+    --purple: #a855f7;
+    --orange: #ff6b35;
+    --yellow: #ffd700;
+    --white: #f0f4ff;
+    --card-bg: rgba(255,255,255,0.06);
+    --card-border: rgba(255,255,255,0.12);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: var(--sky);
+    color: var(--white);
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
+    overflow-x: hidden;
+    /* Prevent iOS rubber-band scroll showing white */
+    overscroll-behavior: none;
+    /* Prevent iOS text size adjustment */
+    -webkit-text-size-adjust: 100%;
+  }
+
+  html {
+    min-height: -webkit-fill-available;
+  }
+
+  /* Stars background */
+  .stars {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none; z-index: 0;
+  }
+  .star {
+    position: absolute; background: white; border-radius: 50%;
+    animation: twinkle 3s infinite alternate;
+  }
+  @keyframes twinkle {
+    0% { opacity: 0.2; transform: scale(1); }
+    100% { opacity: 1; transform: scale(1.3); }
+  }
+
+  /* Floating clouds / planets */
+  .bg-planet {
+    position: fixed; border-radius: 50%;
+    animation: float 8s ease-in-out infinite alternate;
+    pointer-events: none; z-index: 0; opacity: 0.15;
+  }
+  @keyframes float {
+    0% { transform: translateY(0px) rotate(0deg); }
+    100% { transform: translateY(-20px) rotate(10deg); }
+  }
+
+  #app { position: relative; z-index: 1; min-height: 100vh; }
+
+  /* ===== SCREENS ===== */
+  .screen { display: none; min-height: 100vh; min-height: -webkit-fill-available; padding: 20px; padding-bottom: max(20px, env(safe-area-inset-bottom)); }
+  .screen.active { display: -webkit-flex; display: flex; -webkit-flex-direction: column; flex-direction: column; -webkit-align-items: center; align-items: center; -webkit-justify-content: center; justify-content: center; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+
+  /* ===== INTRO SCREEN ===== */
+  #intro-screen {
+    background: radial-gradient(ellipse at center, #1a237e 0%, #0a0a1a 70%);
+    text-align: center;
+    gap: 20px;
+  }
+
+  .game-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: clamp(2.5rem, 8vw, 5rem);
+    background: linear-gradient(135deg, #ffd700, #ff6b35, #e94560);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: none;
+    line-height: 1;
+    animation: titlePulse 2s ease-in-out infinite alternate;
+  }
+  @keyframes titlePulse {
+    0% { filter: drop-shadow(0 0 10px rgba(255,215,0,0.4)); }
+    100% { filter: drop-shadow(0 0 30px rgba(255,107,53,0.8)); }
+  }
+
+  .game-subtitle {
+    font-size: 1.3rem; color: var(--teal); font-weight: 700;
+    letter-spacing: 2px; text-transform: uppercase;
+  }
+
+  .hero-rocket {
+    font-size: 6rem;
+    animation: rocketBounce 1.5s ease-in-out infinite alternate;
+    display: block;
+  }
+  @keyframes rocketBounce {
+    0% { transform: translateY(0) rotate(-5deg); }
+    100% { transform: translateY(-15px) rotate(5deg); }
+  }
+
+  .intro-text {
+    max-width: 500px; font-size: 1.1rem; line-height: 1.7;
+    color: rgba(240,244,255,0.85); font-weight: 600;
+  }
+
+  .name-input:focus { border-color: var(--gold); background: rgba(255,255,255,0.15); }
+  .name-input::placeholder { color: rgba(255,255,255,0.4); }
+
+  /* ===== BUTTONS ===== */
+  .btn {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.3rem; padding: 14px 36px;
+    border: none; border-radius: 50px; cursor: pointer;
+    transition: all 0.2s; text-transform: none;
+    position: relative; overflow: hidden;
+    /* iPad touch */
+    touch-action: manipulation;
+    -webkit-user-select: none; user-select: none;
+    min-height: 44px; /* Apple HIG minimum tap target */
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  .btn:active { transform: scale(0.95); }
+
+  .btn-launch {
+    background: linear-gradient(135deg, #f5a623, #ff6b35);
+    color: white;
+    box-shadow: 0 6px 25px rgba(245,166,35,0.5);
+    font-size: 1.5rem; padding: 18px 50px;
+  }
+  .btn-launch:hover { transform: scale(1.05); box-shadow: 0 10px 35px rgba(245,166,35,0.7); }
+
+  .btn-primary {
+    background: linear-gradient(135deg, #00d2d3, #0f9b58);
+    color: white; box-shadow: 0 6px 20px rgba(0,210,211,0.4);
+  }
+  .btn-primary:hover { transform: scale(1.05); }
+
+  .btn-secondary {
+    background: rgba(255,255,255,0.1); color: var(--white);
+    border: 2px solid rgba(255,255,255,0.3);
+  }
+  .btn-secondary:hover { background: rgba(255,255,255,0.2); }
+
+  .btn-correct {
+    background: linear-gradient(135deg, #0f9b58, #00d2d3);
+    color: white; width: 100%; margin-top: 10px;
+  }
+
+  #map-screen {
+    background: radial-gradient(ellipse at top, #1a237e 0%, #0a0a1a 100%);
+    gap: 15px;
+    padding-top: max(30px, env(safe-area-inset-top));
+    overflow-y: auto; -webkit-overflow-scrolling: touch;
+    justify-content: flex-start;
+  }
+
+  .hud {
+    width: 100%; max-width: 700px;
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--card-bg); border: 1px solid var(--card-border);
+    border-radius: 20px; padding: 12px 20px; gap: 10px;
+  }
+  .hud-name {
+    font-family: 'Fredoka One', cursive; font-size: 1.2rem; color: var(--gold);
+  }
+  .hud-score {
+    font-size: 0.95rem; font-weight: 700; color: var(--teal);
+  }
+  .hud-lives {
+    font-size: 1.3rem; letter-spacing: 2px;
+  }
+
+  .map-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: clamp(1.5rem, 5vw, 2.5rem);
+    background: linear-gradient(135deg, var(--gold), var(--orange));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    text-align: center;
+  }
+
+  .world-map {
+    display: flex; gap: 20px; flex-wrap: wrap; justify-content: center;
+    max-width: 750px;
+  }
+
+  .world-card {
+    width: 200px; border-radius: 24px; padding: 24px 20px;
+    text-align: center; cursor: pointer;
+    transition: all 0.3s; position: relative; overflow: hidden;
+    border: 2px solid transparent;
+  }
+  .world-card.locked {
+    opacity: 0.4; cursor: not-allowed;
+    background: rgba(255,255,255,0.05);
+    border-color: rgba(255,255,255,0.1);
+  }
+  .world-card.available {
+    background: var(--card-bg);
+    border-color: var(--card-border);
+    animation: cardGlow 2s ease-in-out infinite alternate;
+  }
+  .world-card.completed {
+    background: rgba(15,155,88,0.2);
+    border-color: var(--green);
+  }
+  .world-card.active-world {
+    background: rgba(0,210,211,0.15);
+    border-color: var(--teal);
+    animation: activeGlow 1.5s ease-in-out infinite alternate;
+  }
+  @keyframes cardGlow {
+    0% { box-shadow: 0 0 10px rgba(245,166,35,0.2); }
+    100% { box-shadow: 0 0 25px rgba(245,166,35,0.5); }
+  }
+  @keyframes activeGlow {
+    0% { box-shadow: 0 0 15px rgba(0,210,211,0.3); }
+    100% { box-shadow: 0 0 35px rgba(0,210,211,0.7); }
+  }
+  .world-card:not(.locked):hover { transform: translateY(-5px) scale(1.03); }
+
+  .world-icon { font-size: 3.5rem; display: block; margin-bottom: 10px; }
+  .world-name {
+    font-family: 'Fredoka One', cursive; font-size: 1.3rem;
+    margin-bottom: 4px;
+  }
+  .world-grade { font-size: 0.85rem; opacity: 0.7; margin-bottom: 10px; }
+
+  .progress-bar-wrap {
+    background: rgba(255,255,255,0.1); border-radius: 10px;
+    height: 10px; overflow: hidden; margin-bottom: 6px;
+  }
+  .progress-bar-fill {
+    height: 100%; border-radius: 10px;
+    background: linear-gradient(90deg, var(--teal), var(--green));
+    transition: width 0.5s ease;
+  }
+  .progress-text { font-size: 0.8rem; font-weight: 700; color: var(--teal); }
+
+  .lock-icon { font-size: 2rem; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); }
+
+  .map-score-display {
+    text-align: center; background: var(--card-bg); border: 1px solid var(--card-border);
+    border-radius: 20px; padding: 15px 30px; max-width: 500px; width: 100%;
+  }
+  .map-score-label { font-size: 0.9rem; color: rgba(240,244,255,0.6); margin-bottom: 4px; }
+  .map-score-val {
+    font-family: 'Fredoka One', cursive; font-size: 2rem;
+    background: linear-gradient(135deg, var(--gold), var(--orange));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+  .map-score-bar-wrap {
+    background: rgba(255,255,255,0.08); border-radius: 10px;
+    height: 14px; overflow: hidden; margin-top: 10px; position: relative;
+  }
+  .map-score-bar-fill {
+    height: 100%; border-radius: 10px;
+    background: linear-gradient(90deg, #a855f7, var(--teal), var(--gold));
+    transition: width 0.8s ease;
+  }
+  .map-score-range {
+    display: flex; justify-content: space-between;
+    font-size: 0.75rem; color: rgba(240,244,255,0.5); margin-top: 4px;
+  }
+
+  #question-screen {
+    background: radial-gradient(ellipse at top, #0f0c29 0%, #302b63 50%, #24243e 100%);
+    gap: 16px; padding: 20px;
+    justify-content: flex-start; padding-top: max(20px, env(safe-area-inset-top));
+    overflow-y: auto; -webkit-overflow-scrolling: touch;
+  }
+
+  .q-hud {
+    width: 100%; max-width: 680px;
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 8px;
+  }
+  .q-hud-left { display: flex; flex-direction: column; gap: 2px; }
+  .q-world-tag {
+    font-size: 0.8rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1px; color: var(--teal);
+  }
+  .q-progress-text { font-size: 0.75rem; color: rgba(240,244,255,0.5); }
+  .q-streak {
+    font-family: 'Fredoka One', cursive; font-size: 1.1rem; color: var(--orange);
+  }
+  .q-score-mini {
+    font-family: 'Fredoka One', cursive; font-size: 1rem; color: var(--gold);
+  }
+
+  .q-progress-outer {
+    width: 100%; max-width: 680px;
+    background: rgba(255,255,255,0.08); border-radius: 10px; height: 8px; overflow: hidden;
+  }
+  .q-progress-inner {
+    height: 100%; border-radius: 10px;
+    background: linear-gradient(90deg, var(--purple), var(--teal));
+    transition: width 0.4s ease;
+  }
+
+  .question-card {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 28px; padding: 28px 30px;
+    width: 100%; max-width: 680px;
+    position: relative;
+  }
+  .question-type-badge {
+    display: inline-block; padding: 4px 14px; border-radius: 20px;
+    font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;
+    margin-bottom: 14px;
+  }
+  .badge-math { background: rgba(168,85,247,0.25); color: var(--purple); border: 1px solid var(--purple); }
+  .badge-word { background: rgba(245,166,35,0.25); color: var(--gold); border: 1px solid var(--gold); }
+
+  .question-text {
+    font-size: clamp(1.1rem, 3.5vw, 1.4rem); font-weight: 700; line-height: 1.6;
+    margin-bottom: 6px;
+  }
+
+  .q-hint {
+    font-size: 0.85rem; color: rgba(240,244,255,0.5); font-style: italic;
+    margin-bottom: 10px;
+  }
+
+  .answer-area { width: 100%; max-width: 680px; }
+
+  /* Multiple choice */
+  .choices-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+  }
+  .choice-btn {
+    background: rgba(255,255,255,0.07); border: 2px solid rgba(255,255,255,0.15);
+    border-radius: 16px; padding: 16px 14px;
+    color: var(--white); font-family: 'Nunito', sans-serif;
+    font-size: 1.05rem; font-weight: 700; cursor: pointer;
+    transition: all 0.2s; text-align: center;
+    /* iPad touch */
+    touch-action: manipulation;
+    -webkit-user-select: none; user-select: none;
+    min-height: 60px; /* generous tap target on iPad */
+    -webkit-appearance: none; appearance: none;
+    display: -webkit-flex; display: flex;
+    -webkit-align-items: center; align-items: center;
+    -webkit-justify-content: center; justify-content: center;
+  }
+  .choice-btn:hover:not(:disabled) {
+    background: rgba(0,210,211,0.15); border-color: var(--teal);
+    transform: scale(1.02);
+  }
+  .choice-btn.correct-ans {
+    background: rgba(15,155,88,0.3); border-color: var(--green);
+    animation: correctFlash 0.5s ease;
+  }
+  .choice-btn.wrong-ans {
+    background: rgba(233,69,96,0.3); border-color: var(--bright);
+    animation: wrongShake 0.4s ease;
+  }
+  @keyframes correctFlash {
+    0% { transform: scale(1); } 50% { transform: scale(1.08); } 100% { transform: scale(1); }
+  }
+  @keyframes wrongShake {
+    0%,100% { transform: translateX(0); }
+    25% { transform: translateX(-8px); } 75% { transform: translateX(8px); }
+  }
+
+  /* Free answer */
+  .free-answer-wrap { display: -webkit-flex; display: flex; gap: 10px; }
+  .free-input {
+    -webkit-flex: 1; flex: 1; padding: 16px 20px;
+    font-size: 1.1rem; /* must be >= 16px / 1rem to prevent iOS zoom - using 1.1rem to be safe */
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700; border: 3px solid rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.08); color: white; border-radius: 16px; outline: none;
+    text-align: center; transition: all 0.3s;
+    /* iOS Safari fixes */
+    -webkit-appearance: none; appearance: none;
+    -webkit-border-radius: 16px;
+    min-height: 56px;
+  }
+  .free-input:focus { border-color: var(--teal); background: rgba(0,210,211,0.1); }
+  .btn-submit {
+    background: linear-gradient(135deg, var(--purple), var(--teal));
+    color: white; border: none; border-radius: 16px;
+    padding: 16px 24px; font-size: 1.1rem; font-family: 'Fredoka One', cursive;
+    cursor: pointer; transition: all 0.2s;
+    touch-action: manipulation; -webkit-user-select: none; user-select: none;
+    min-height: 56px; -webkit-appearance: none; appearance: none;
+  }
+  .btn-submit:hover { transform: scale(1.05); }
+
+  /* Feedback */
+  .feedback-area {
+    width: 100%; max-width: 680px; text-align: center;
+    padding: 16px; border-radius: 20px; font-weight: 800; font-size: 1.2rem;
+    display: none;
+  }
+  .feedback-area.show { display: block; animation: feedbackPop 0.3s ease; }
+  @keyframes feedbackPop {
+    0% { transform: scale(0.8); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  .feedback-area.correct-fb {
+    background: rgba(15,155,88,0.25); border: 2px solid var(--green); color: #7fffd4;
+  }
+  .feedback-area.wrong-fb {
+    background: rgba(233,69,96,0.2); border: 2px solid var(--bright); color: #ffb3c1;
+  }
+
+  .next-btn-wrap { width: 100%; max-width: 680px; }
+
+  /* ===== LEVEL UP / CELEBRATION ===== */
+  #levelup-screen {
+    background: radial-gradient(ellipse at center, #1a1a3e 0%, #0a0a1a 100%);
+    text-align: center; gap: 20px;
+  }
+  .levelup-emoji { font-size: 6rem; animation: spin 1s ease-in-out; }
+  @keyframes spin {
+    0% { transform: rotate(-20deg) scale(0.5); opacity: 0; }
+    100% { transform: rotate(0deg) scale(1); opacity: 1; }
+  }
+  .levelup-title {
+    font-family: 'Fredoka One', cursive; font-size: clamp(2rem, 7vw, 3.5rem);
+    background: linear-gradient(135deg, var(--gold), var(--orange), var(--bright));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+  .levelup-desc { font-size: 1.1rem; max-width: 420px; line-height: 1.6; color: rgba(240,244,255,0.85); }
+  .levelup-stats {
+    background: var(--card-bg); border: 1px solid var(--card-border);
+    border-radius: 20px; padding: 20px 30px; display: flex; gap: 30px;
+  }
+  .stat-item { text-align: center; }
+  .stat-val { font-family: 'Fredoka One', cursive; font-size: 2rem; color: var(--teal); }
+  .stat-lbl { font-size: 0.8rem; color: rgba(240,244,255,0.5); text-transform: uppercase; letter-spacing: 1px; }
+
+  /* Confetti */
+  .confetti-piece {
+    position: fixed; width: 10px; height: 10px;
+    pointer-events: none; z-index: 999;
+    animation: confettiFall linear forwards;
+  }
+  @keyframes confettiFall {
+    0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+  }
+
+  /* ===== WIN SCREEN ===== */
+  #win-screen {
+    background: radial-gradient(ellipse at center, #1a237e 0%, #0a0a1a 100%);
+    text-align: center; gap: 20px;
+  }
+  .win-title {
+    font-family: 'Fredoka One', cursive; font-size: clamp(2.5rem, 8vw, 4.5rem);
+    background: linear-gradient(135deg, var(--gold), var(--orange), var(--bright), var(--purple));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    animation: titlePulse 1.5s ease-in-out infinite alternate;
+  }
+  .final-score-box {
+    background: var(--card-bg); border: 2px solid var(--gold);
+    border-radius: 24px; padding: 30px 40px; text-align: center;
+  }
+  .final-score-val {
+    font-family: 'Fredoka One', cursive; font-size: 4rem; color: var(--gold);
+    display: block;
+  }
+  .final-score-lbl { font-size: 1rem; color: rgba(240,244,255,0.6); }
+
+  /* ===== TOOLTIP / HINT ===== */
+  .character-hint {
+    display: flex; align-items: flex-start; gap: 14px;
+    background: rgba(168,85,247,0.12); border: 1px solid rgba(168,85,247,0.3);
+    border-radius: 20px; padding: 14px 18px; max-width: 680px; width: 100%;
+  }
+  .char-avatar { font-size: 2.5rem; flex-shrink: 0; }
+  .char-bubble { font-size: 0.9rem; line-height: 1.5; color: rgba(240,244,255,0.85); font-weight: 600; }
+  .char-name { font-family: 'Fredoka One', cursive; font-size: 1rem; color: var(--purple); margin-bottom: 4px; }
+
+  /* ===== RESPONSIVE — iPad & Mobile ===== */
+
+  /* iPad portrait (768px) */
+  @media (min-width: 600px) and (max-width: 1024px) {
+    .world-map { gap: 20px; }
+    .world-card { width: 200px; }
+    .choices-grid { grid-template-columns: 1fr 1fr; }
+    .question-card { padding: 24px 28px; }
+    .q-hud { padding: 0 4px; }
+    /* Bigger tap targets on iPad */
+    .choice-btn { min-height: 70px; font-size: 1.1rem; }
+    .btn { min-height: 52px; }
+  }
+
+  /* iPad landscape — reduce vertical gap so all content fits without scroll */
+  @media (min-width: 900px) and (max-height: 700px) {
+    .hero-rocket { font-size: 4rem; }
+    .game-title  { font-size: 3rem; }
+    .intro-text  { font-size: 0.95rem; }
+    #intro-screen { gap: 12px; }
+    .levelup-emoji { font-size: 4rem; }
+    .character-hint { padding: 10px 14px; }
+    .char-avatar { font-size: 2rem; }
+    .question-card { padding: 18px 22px; }
+    #question-screen { gap: 10px; }
+  }
+
+  /* Small phones */
+  @media (max-width: 480px) {
+    .choices-grid { grid-template-columns: 1fr; }
+    .world-map { gap: 14px; }
+    .world-card { width: 160px; padding: 18px 14px; }
+    .levelup-stats { -webkit-flex-direction: column; flex-direction: column; gap: 15px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Background stars -->
+<div class="stars" id="stars-bg"></div>
+<div class="bg-planet" style="width:300px;height:300px;background:radial-gradient(circle at 40% 40%,#3949ab,#1a237e);top:-80px;right:-80px;"></div>
+<div class="bg-planet" style="width:200px;height:200px;background:radial-gradient(circle at 40% 40%,#4a148c,#1a0533);bottom:100px;left:-60px;animation-delay:2s;"></div>
+
+<div id="app">
+
+  <!-- ===== INTRO ===== -->
+  <div id="intro-screen" class="screen active">
+    <span class="hero-rocket">🚀</span>
+    <div class="game-title">MATH QUEST</div>
+    <div class="game-subtitle">⭐ Sam's Galaxy Adventure ⭐</div>
+    <p class="intro-text">
+      Hey <strong>Sam</strong>! 🚀 Blast off on an epic space adventure! Solve math problems to power your rocket,
+      unlock new worlds, and become the ultimate <strong>Math Hero</strong>! 🌟<br><br>
+      Your progress is <strong>saved automatically</strong> so you can pick up right where you left off. 💾
+    </p>
+
+    <!-- Resume panel — shown only when a save exists, hidden otherwise -->
+    <div id="resume-panel" style="display:none;flex-direction:column;align-items:center;gap:12px;width:100%;max-width:440px">
+      <div style="background:rgba(0,210,211,0.1);border:1px solid rgba(0,210,211,0.35);border-radius:18px;padding:16px 22px;text-align:center;width:100%">
+        <div style="font-family:'Fredoka One',cursive;font-size:1.1rem;color:#00d2d3;margin-bottom:6px">👋 Welcome back, Sam!</div>
+        <div id="resume-detail" style="font-size:0.9rem;color:rgba(240,244,255,0.82);font-weight:600;line-height:1.7"></div>
+      </div>
+      <button type="button" class="btn btn-launch" style="background:linear-gradient(135deg,#00d2d3,#0f9b58);font-size:1.3rem;padding:16px 44px" onclick="resumeGame()">▶ CONTINUE MISSION</button>
+      <button type="button" class="btn btn-secondary" style="font-size:1rem;padding:12px 30px" onclick="startOver()">🔄 Start Over</button>
+    </div>
+
+    <button type="button" class="btn btn-launch" id="start-btn" onclick="startGame()">🚀 LAUNCH MISSION!</button>
+  </div>
+
+  <!-- ===== WORLD MAP ===== -->
+  <div id="map-screen" class="screen">
+    <div class="hud">
+      <div class="hud-name" id="hud-name">⭐ Sam</div>
+      <div class="hud-score">MAP Score: <span id="hud-map-score">228</span></div>
+      <div class="hud-lives" id="hud-lives">❤️❤️❤️</div>
+    </div>
+
+    <div class="map-title">🌌 Choose Your World!</div>
+
+    <div class="world-map">
+      <!-- World 1: Asteroid Belt -->
+      <div class="world-card" id="world-card-0" onclick="enterWorld(0)">
+        <span class="world-icon">☄️</span>
+        <div class="world-name" style="color:#00d2d3">Asteroid Belt</div>
+        <div class="world-grade">4th Grade · MAP 228–238</div>
+        <div class="progress-bar-wrap">
+          <div class="progress-bar-fill" id="world-progress-0" style="width:0%"></div>
+        </div>
+        <div class="progress-text" id="world-ptext-0">0% Complete</div>
+      </div>
+      <!-- World 2: Volcano Planet -->
+      <div class="world-card locked" id="world-card-1" onclick="enterWorld(1)">
+        <span class="world-icon">🌋</span>
+        <div class="world-name" style="color:#ff6b35">Lava Planet</div>
+        <div class="world-grade">5th Grade · MAP 238–250</div>
+        <div class="progress-bar-wrap">
+          <div class="progress-bar-fill" id="world-progress-1" style="width:0%;background:linear-gradient(90deg,#ff6b35,#e94560)"></div>
+        </div>
+        <div class="progress-text" id="world-ptext-1">🔒 Locked</div>
+      </div>
+      <!-- World 3: Crystal Galaxy -->
+      <div class="world-card locked" id="world-card-2" onclick="enterWorld(2)">
+        <span class="world-icon">💎</span>
+        <div class="world-name" style="color:#a855f7">Crystal Galaxy</div>
+        <div class="world-grade">6th Grade · MAP 250–260</div>
+        <div class="progress-bar-wrap">
+          <div class="progress-bar-fill" id="world-progress-2" style="width:0%;background:linear-gradient(90deg,#a855f7,#e94560)"></div>
+        </div>
+        <div class="progress-text" id="world-ptext-2">🔒 Locked</div>
+      </div>
+    </div>
+
+    <div class="map-score-display">
+      <div class="map-score-label">Your Math Power Level</div>
+      <div class="map-score-val" id="map-display-score">228</div>
+      <div class="map-score-bar-wrap">
+        <div class="map-score-bar-fill" id="map-score-bar" style="width:0%"></div>
+      </div>
+      <div class="map-score-range"><span>228 (Start)</span><span>260 (Goal 🏆)</span></div>
+    </div>
+  </div>
+
+  <!-- ===== QUESTION SCREEN ===== -->
+  <div id="question-screen" class="screen">
+    <div class="q-hud">
+      <div class="q-hud-left">
+        <div class="q-world-tag" id="q-world-name">Asteroid Belt</div>
+        <div class="q-progress-text" id="q-progress-text">Question 1 of 250</div>
+      </div>
+      <div class="q-streak" id="q-streak">🔥 0 streak</div>
+      <div class="q-score-mini" id="q-score-mini">⭐ 0 pts</div>
+    </div>
+
+    <div class="q-progress-outer">
+      <div class="q-progress-inner" id="q-progress-bar" style="width:0%"></div>
+    </div>
+
+    <div class="character-hint" id="char-hint">
+      <div class="char-avatar" id="char-avatar">🤖</div>
+      <div>
+        <div class="char-name" id="char-name">Cosmo</div>
+        <div class="char-bubble" id="char-msg">I'm here to help! You've got this!</div>
+      </div>
+    </div>
+
+    <div class="question-card">
+      <span class="question-type-badge" id="q-type-badge">Math</span>
+      <div class="question-text" id="question-text">Loading question...</div>
+      <div class="q-hint" id="q-hint"></div>
+    </div>
+
+    <div class="answer-area" id="answer-area"></div>
+
+    <div class="feedback-area" id="feedback-area"></div>
+
+    <div class="next-btn-wrap" id="next-btn-wrap" style="display:none">
+      <button type="button" class="btn btn-primary" style="width:100%" onclick="nextQuestion()">Next Question ➡️</button>
+    </div>
+  </div>
+
+  <!-- ===== LEVEL UP ===== -->
+  <div id="levelup-screen" class="screen">
+    <div class="levelup-emoji" id="lu-emoji">🎉</div>
+    <div class="levelup-title" id="lu-title">WORLD COMPLETE!</div>
+    <p class="levelup-desc" id="lu-desc">Amazing job! You've mastered this world!</p>
+    <div class="levelup-stats">
+      <div class="stat-item">
+        <div class="stat-val" id="lu-correct">0</div>
+        <div class="stat-lbl">Correct</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-val" id="lu-accuracy">0%</div>
+        <div class="stat-lbl">Accuracy</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-val" id="lu-score-gain">+0</div>
+        <div class="stat-lbl">MAP Pts</div>
+      </div>
+    </div>
+    <button type="button" class="btn btn-primary" id="lu-btn" onclick="afterLevelUp()">Continue 🚀</button>
+  </div>
+
+  <!-- ===== WIN ===== -->
+  <div id="win-screen" class="screen">
+    <span style="font-size:6rem;animation:rocketBounce 1s infinite alternate">🏆</span>
+    <div class="win-title">MISSION COMPLETE!</div>
+    <p style="font-size:1.2rem;max-width:450px;text-align:center;line-height:1.7">
+      🌟 <strong>Sam</strong>, you are an incredible Math Hero!<br>
+      You've conquered all three worlds and reached the goal!
+    </p>
+    <div class="final-score-box">
+      <span class="final-score-val" id="final-score-val">260</span>
+      <div class="final-score-lbl">Final MAP Score</div>
+    </div>
+    <div style="display:flex;gap:14px;flex-wrap:wrap;justify-content:center">
+      <button type="button" class="btn btn-launch" onclick="playAgain()">🔄 Play Again!</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ─────────────────────────────────────────────
+//  HELPERS
+// ─────────────────────────────────────────────
+function ri(min, max)   { if (min > max) { var t=min; min=max; max=t; } return Math.floor(Math.random()*(max-min+1))+min; }
+function pick(arr)      { return arr[Math.floor(Math.random()*arr.length)]; }
+function gcd(a,b)       { return b===0 ? Math.abs(a) : gcd(b,a%b); }
+function lcm(a,b)       { return Math.abs(a*b)/gcd(a,b); }
+
+function fisherYates(arr) {
+  const a = arr.slice();
+  for (let i=a.length-1; i>0; i--) {
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
+
+// ─────────────────────────────────────────────
+//  BUILD PROBLEM — generates multiple-choice
+// ─────────────────────────────────────────────
+function buildProblem(q, ans, hint, type, fixedChoices) {
+  let choices;
+  if (fixedChoices) {
+    choices = fixedChoices;
+  } else {
+    const num = typeof ans === 'number' ? ans : parseFloat(ans);
+    if (!isNaN(num) && typeof ans !== 'string') {
+      const seen = new Set([num]);
+      const base = Math.max(Math.abs(num), 5);
+      const deltas = [1,2,3,4,5,7,10,Math.ceil(base*0.1),Math.ceil(base*0.15),Math.ceil(base*0.25),Math.ceil(base*0.5)];
+      const wrongs = [];
+      let attempts = 0;
+      while (wrongs.length < 3 && attempts < 300) {
+        const d = deltas[attempts % deltas.length];
+        const sign = attempts%2===0 ? 1 : -1;
+        const w = Math.round((num + sign*d)*100)/100;
+        if (!seen.has(w)) { seen.add(w); wrongs.push(w); }
+        attempts++;
+      }
+      let fb = 1;
+      while (wrongs.length < 3) { if (!seen.has(num+fb)) wrongs.push(num+fb); fb++; }
+      choices = fisherYates([ans, ...wrongs.slice(0,3)]);
+    }
+  }
+  return { question:q, answer:ans, hint, type, choices };
+}
+
+// ─────────────────────────────────────────────
+//  GRADE 4 GENERATORS
+// ─────────────────────────────────────────────
+function gen4thProblems() {
+  const mathTypes = ['add','sub','mul','div','place','frac','area','perimeter','round','compare'];
+  const wordThemes = ['space','animals','candy','pizza','rockets','robots','treasure'];
+  const problems = [];
+  for (let i=0; i<200; i++) problems.push(genMath4(pick(mathTypes)));
+  for (let i=0; i<50;  i++) problems.push(genWord4(pick(wordThemes)));
+  return fisherYates(problems);
+}
+
+function genMath4(type) {
+  let q, ans, hint, choices;
+  switch(type) {
+    case 'add': { const a=ri(100,9999), b=ri(100,9999); q=`${a} + ${b} = ?`; ans=a+b; hint="Line up the digits and add from right to left!"; break; }
+    case 'sub': { const a=ri(500,9999), b=ri(100,a); q=`${a} − ${b} = ?`; ans=a-b; hint="Subtract column by column. Borrow if you need to!"; break; }
+    case 'mul': { const a=ri(2,99), b=ri(2,12); q=`${a} × ${b} = ?`; ans=a*b; hint="Remember your times tables!"; break; }
+    case 'div': { const b=ri(2,12), a0=ri(2,50); q=`${b*a0} ÷ ${b} = ?`; ans=a0; hint="Think: what times the divisor gives the dividend?"; break; }
+    case 'place': {
+      const a=ri(1000,99999);
+      const placeNames=['ones','tens','hundreds','thousands','ten-thousands'];
+      const placeVals=[1,10,100,1000,10000];
+      const idx=ri(0, Math.min(Math.floor(Math.log10(a)), placeNames.length-1));
+      const place=placeNames[idx];
+      q=`What digit is in the ${place} place of ${a.toLocaleString()}?`;
+      ans=Math.floor(a/placeVals[idx])%10; hint="Count from the right: ones, tens, hundreds…";
+      break;
+    }
+    case 'frac': {
+      const d=pick([2,3,4,5,6,8,10]), n1=ri(1,d-1), n2=ri(1,d-1);
+      q=`${n1}/${d} + ${n2}/${d} = ?/${d}`; ans=n1+n2; hint="Add the top numbers! The bottom stays the same.";
+      break;
+    }
+    case 'area':      { const w=ri(2,20), h=ri(2,20); q=`Area of a rectangle: length = ${w}, width = ${h}. Area = ?`; ans=w*h; hint="Area = length × width"; break; }
+    case 'perimeter': { const w=ri(2,20), h=ri(2,20); q=`Perimeter of a rectangle: length = ${w}, width = ${h}. Perimeter = ?`; ans=2*(w+h); hint="Perimeter = 2 × (length + width)"; break; }
+    case 'round': {
+      const a=ri(1000,99999), p=pick([10,100,1000]);
+      q=`Round ${a.toLocaleString()} to the nearest ${p.toLocaleString()}.`;
+      ans=Math.round(a/p)*p; hint="Look at the digit just right of where you're rounding!";
+      break;
+    }
+    case 'compare': {
+      const a=ri(1000,9999), b=ri(1000,9999);
+      q=`${a.toLocaleString()} ___ ${b.toLocaleString()} (choose >, <, or =)`;
+      ans = a>b ? '>' : a<b ? '<' : '='; choices=['>', '<', '='];
+      hint="Compare digit by digit from left to right!";
+      break;
+    }
+    default: { const a=ri(10,99), b=ri(10,99); q=`${a} + ${b} = ?`; ans=a+b; hint="Add them up!"; }
+  }
+  return buildProblem(q, ans, hint, 'math', choices);
+}
+
+function genWord4(theme) {
+  const themeData = {
+    space:    { chars:['Zara the astronaut','Captain Nova','Robot BEEP'],       places:['the moon','Mars','a space station'] },
+    animals:  { chars:['Benny the bear','Luna the fox','Max the dog'],          places:['the forest','the meadow','the river'] },
+    candy:    { chars:['Sweet Sam','Candy Cora','Chef Bon-Bon'],                places:['the candy shop','Sugar Land','the bakery'] },
+    pizza:    { chars:['Chef Mario','Pizza Pete','Slice Queen'],                places:['the pizzeria','the kitchen','the restaurant'] },
+    rockets:  { chars:['Rocket Rex','Commander Blaze','Pilot Zoe'],             places:['the launch pad','Mission Control','the rocket factory'] },
+    robots:   { chars:['Robot ZLIX','Bolt the bot','Circuit C'],                places:['the robot lab','Tech Tower','Planet Circuit'] },
+    treasure: { chars:['Captain Ribb','Explorer Elly','Map-Maker Mo'],          places:['the treasure island','the cave','the ancient temple'] },
+  };
+  const td = themeData[theme] || themeData.space;
+  const char  = pick(td.chars);
+  const place = pick(td.places);
+  const templates = [
+    () => { const a=ri(12,150), b=ri(5,a-1); return { q:`${char} collected ${a} gems at ${place}. Then gave away ${b}. How many are left?`,             ans:a-b,      hint:"This is a subtraction problem!" }; },
+    () => { const bags=ri(3,12), each=ri(4,15); return { q:`${char} packed ${bags} bags with ${each} crystals each. How many crystals total?`,              ans:bags*each, hint:"Multiply the bags by crystals in each!" }; },
+    () => { const g=ri(2,10), e=ri(2,20); return { q:`${char} shared ${g*e} coins equally among ${g} friends. How many coins each?`,                       ans:e,         hint:"Divide the total by the number of friends!" }; },
+    () => { const a=ri(100,500), b=ri(50,300); return { q:`${char} traveled ${a} miles Monday and ${b} miles Tuesday at ${place}. Total miles?`,           ans:a+b,      hint:"Add the two distances together!" }; },
+    () => { const l=ri(5,20), w=ri(3,15); return { q:`${char} built a garden at ${place}: ${l} feet long and ${w} feet wide. Area?`,                       ans:l*w,      hint:"Area = length × width!" }; },
+  ];
+  const t = pick(templates)();
+  return buildProblem(t.q, t.ans, t.hint, 'word');
+}
+
+// ─────────────────────────────────────────────
+//  GRADE 5 GENERATORS
+// ─────────────────────────────────────────────
+function gen5thProblems() {
+  const mathTypes = ['decAdd','decMul','fracAdd','fracMul','pct','prime','volume','coords','expNot','patterns'];
+  const wordThemes = ['science','sports','cooking','travel','money','nature','inventions'];
+  const problems = [];
+  for (let i=0; i<200; i++) problems.push(genMath5(pick(mathTypes)));
+  for (let i=0; i<50;  i++) problems.push(genWord5(pick(wordThemes)));
+  return fisherYates(problems);
+}
+
+function genMath5(type) {
+  let q, ans, hint, choices;
+  switch(type) {
+    case 'decAdd': { const a=(ri(10,999)/10).toFixed(1), b=(ri(10,999)/10).toFixed(1); q=`${a} + ${b} = ?`; ans=Math.round((parseFloat(a)+parseFloat(b))*10)/10; hint="Line up the decimal points and add!"; break; }
+    case 'decMul': { const a=(ri(1,99)/10).toFixed(1), b=ri(2,9); q=`${a} × ${b} = ?`; ans=Math.round(parseFloat(a)*b*10)/10; hint="Multiply as whole numbers, then place the decimal!"; break; }
+    case 'fracAdd': {
+      const d1=pick([2,3,4,5,6]), d2=pick([2,3,4,5,6]);
+      const n1=ri(1,d1), n2=ri(1,d2);
+      const L=lcm(d1,d2);
+      const numN=n1*(L/d1)+n2*(L/d2);
+      q=`${n1}/${d1} + ${n2}/${d2} = ? (numerator, denominator = ${L})`; ans=numN; hint=`Find LCD = ${L}, convert both fractions!`;
+      break;
+    }
+    case 'fracMul': {
+      const n1=ri(1,5), d1=ri(2,6), n2=ri(1,5), d2=ri(2,6);
+      const rn=n1*n2, rd=d1*d2, g=gcd(rn,rd);
+      q=`${n1}/${d1} × ${n2}/${d2} = ? (numerator only, denominator = ${rd/g})`; ans=rn/g; hint="Multiply top×top and bottom×bottom, then simplify!";
+      break;
+    }
+    case 'pct': { const p=pick([10,20,25,50,75]), n=ri(2,20)*10; q=`What is ${p}% of ${n}?`; ans=Math.round(n*p/100); hint="Multiply by the percent and divide by 100!"; break; }
+    case 'prime': {
+      const primes=[2,3,5,7,11,13,17,19,23,29,31,37,41,43,47];
+      const composites=[4,6,8,9,10,12,14,15,16,18,20,21,22,24,25];
+      const isPrime=Math.random()>0.5;
+      const n=isPrime ? pick(primes) : pick(composites);
+      q=`Is ${n} a prime number? (yes or no)`; ans=isPrime?'yes':'no'; choices=['yes','no']; hint="A prime has exactly 2 factors: 1 and itself!";
+      break;
+    }
+    case 'volume': { const l=ri(2,10), w=ri(2,10), h=ri(2,10); q=`Volume of a box: length=${l}, width=${w}, height=${h}. Volume = ?`; ans=l*w*h; hint="Volume = length × width × height"; break; }
+    case 'coords': {
+      const x=ri(1,10), y=ri(1,10);
+      const dirOpts=[['up',ri(1,6)],['down',ri(1,Math.max(1,y-1))],['right',ri(1,6)],['left',ri(1,Math.max(1,x-1))]];
+      const [d,n]=pick(dirOpts);
+      const nx = d==='right'?x+n : d==='left'?x-n : x;
+      q=`Point (${x},${y}). Move ${d} ${n}. New x-coordinate = ?`; ans=nx; hint="Left/right changes x. Up/down changes y.";
+      break;
+    }
+    case 'expNot': { const base=pick([2,3,5,10]), exp=ri(2,4); q=`${base}^${exp} = ? (${base} to the power of ${exp})`; ans=Math.pow(base,exp); hint="Multiply the base by itself the number of times shown!"; break; }
+    case 'patterns': { const start=ri(1,20), step=ri(2,15); const seq=[start,start+step,start+2*step,start+3*step]; q=`What comes next? ${seq.join(', ')}, ___`; ans=start+4*step; hint="Find the difference between each number!"; break; }
+    default: { const a=ri(10,999), b=ri(10,999); q=`${a}+${b}=?`; ans=a+b; hint='Add!'; }
+  }
+  return buildProblem(q, ans, hint, 'math', choices);
+}
+
+function genWord5(theme) {
+  const templates = [
+    () => { const price=(ri(5,50)*0.1+1).toFixed(2), qty=ri(2,8); return { q:`A ${theme} item costs $${price}. You buy ${qty}. Total cost?`, ans:parseFloat((parseFloat(price)*qty).toFixed(2)), hint:"Multiply price by quantity!" }; },
+    () => { const total=ri(100,500), pct=pick([10,20,25,50]); return { q:`A ${theme} team scores ${total} points. ${pct}% were bonus. How many bonus points?`, ans:Math.round(total*pct/100), hint:"Find the percentage of the total!" }; },
+    () => { const d1=ri(2,5), t=ri(3,8); return { q:`In ${theme}, 1/${d1} of ${t*d1} students passed. How many passed?`, ans:t, hint:"Divide the whole by the denominator!" }; },
+    () => { const l=ri(3,12), w=ri(2,8), h=ri(2,6); return { q:`A ${theme} container is ${l}m long, ${w}m wide, ${h}m tall. Volume?`, ans:l*w*h, hint:"Volume = l × w × h!" }; },
+    () => { const a=ri(10,500)/10, b=ri(10,500)/10; return { q:`A ${theme} trip is ${a.toFixed(1)} km plus ${b.toFixed(1)} km. Total km?`, ans:Math.round((a+b)*10)/10, hint:"Add the decimal distances!" }; },
+  ];
+  const t = pick(templates)();
+  return buildProblem(t.q, t.ans, t.hint, 'word');
+}
+
+// ─────────────────────────────────────────────
+//  GRADE 6 GENERATORS
+// ─────────────────────────────────────────────
+function gen6thProblems() {
+  const mathTypes = ['ratio','rate','algebra','negNum','stats','geometry','probability','expressions','integers','convert'];
+  const wordThemes = ['business','engineering','environment','health','gaming','architecture','science'];
+  const problems = [];
+  for (let i=0; i<200; i++) problems.push(genMath6(pick(mathTypes)));
+  for (let i=0; i<50;  i++) problems.push(genWord6(pick(wordThemes)));
+  return fisherYates(problems);
+}
+
+function genMath6(type) {
+  let q, ans, hint, choices;
+  switch(type) {
+    case 'ratio': { const a=ri(2,8), b=ri(2,8), m=ri(2,5); q=`Ratio is ${a}:${b}. If first part = ${a*m}, what is second part?`; ans=b*m; hint="Scale both parts of the ratio equally!"; break; }
+    case 'rate':  { const s=ri(20,80), t=ri(2,6); q=`A rocket travels ${s} km/hr. Distance in ${t} hours?`; ans=s*t; hint="Distance = Speed × Time"; break; }
+    case 'algebra': { const a=ri(2,9), b=ri(1,20), x=ri(1,10); q=`Solve: ${a}x + ${b} = ${a*x+b}. What is x?`; ans=x; hint="Subtract the number, then divide to find x!"; break; }
+    case 'negNum': { const a=-ri(1,20), b=ri(1,20); q=`${a} + ${b} = ?`; ans=a+b; hint="Start at the negative number and count up!"; break; }
+    case 'stats': {
+      const nums=Array.from({length:5},()=>ri(1,20)).sort((a,b)=>a-b);
+      const mean=Math.round(nums.reduce((s,v)=>s+v,0)/nums.length*10)/10;
+      if (Math.random()>0.5) { q=`Find the mean of: ${nums.join(', ')}`; ans=mean; hint="Add all numbers, divide by how many!"; }
+      else                   { q=`Find the median of: ${nums.join(', ')}`; ans=nums[2]; hint="The median is the MIDDLE number when sorted!"; }
+      break;
+    }
+    case 'geometry': {
+      const r=ri(2,15);
+      if (Math.random()>0.5) { q=`Area of circle, radius=${r}. Use π≈3.14. Round to nearest whole.`; ans=Math.round(3.14*r*r); hint="Area = π × r²"; }
+      else                   { q=`Circumference, radius=${r}. Use π≈3.14. Round to nearest whole.`; ans=Math.round(2*3.14*r); hint="C = 2 × π × r"; }
+      break;
+    }
+    case 'probability': { const tot=ri(5,20), fav=ri(1,tot-1), g=gcd(fav,tot); q=`Bag has ${tot} marbles, ${fav} are red. P(red) numerator (denominator=${tot/g})?`; ans=fav/g; hint="P = favorable ÷ total, then simplify!"; break; }
+    case 'expressions': { const a=ri(2,8), b=ri(1,10), x=ri(1,8); q=`Evaluate: ${a}x − ${b} when x = ${x}`; ans=a*x-b; hint="Substitute x, then follow order of operations!"; break; }
+    case 'integers': { const a=-ri(1,15), b=-ri(1,15); q=`${a} − (${b}) = ?`; ans=a-b; hint="Subtracting a negative is like adding the positive!"; break; }
+    case 'convert': {
+      const opts=[{u1:'km',u2:'m',f:1000},{u1:'hours',u2:'minutes',f:60},{u1:'kg',u2:'g',f:1000},{u1:'m',u2:'cm',f:100}];
+      const o=pick(opts), v=ri(2,15);
+      q=`Convert ${v} ${o.u1} to ${o.u2}.`; ans=v*o.f; hint=`Multiply by ${o.f}!`;
+      break;
+    }
+    default: { const a=ri(10,99), b=ri(2,9); q=`${a}×${b}=?`; ans=a*b; hint='Multiply!'; }
+  }
+  return buildProblem(q, ans, hint, 'math', choices);
+}
+
+function genWord6(theme) {
+  const templates = [
+    () => { const r=pick([2,3,4,5]), p=ri(2,10); return { q:`In ${theme}, ratio of students to teachers is ${r}:1. There are ${r*p} students. How many teachers?`, ans:p, hint:"Divide students by the ratio!" }; },
+    () => { const x=ri(2,10), a=ri(2,6), b=ri(5,30); return { q:`A ${theme} machine makes ${a} items per minute plus ${b} bonus. Total in ${x} minutes?`, ans:a*x+b, hint:"Multiply then add!" }; },
+    () => { const nums=Array.from({length:4},()=>ri(50,200)); return { q:`${theme.charAt(0).toUpperCase()+theme.slice(1)} scores: ${nums.join(', ')}. Mean?`, ans:Math.round(nums.reduce((s,v)=>s+v,0)/nums.length), hint:"Sum all, divide by count!" }; },
+    () => { const tot=ri(10,50), fav=ri(1,tot-1); return { q:`In ${theme}, ${fav} of ${tot} results were positive. Approximately what percent?`, ans:Math.round(fav/tot*100), hint:"Divide favorable by total, multiply by 100!" }; },
+    () => { const rate=ri(10,60), hours=ri(2,8), bonus=ri(5,50); return { q:`A ${theme} worker earns $${rate}/hr. After ${hours} hours plus $${bonus} bonus. Total?`, ans:rate*hours+bonus, hint:"Multiply rate×hours, then add bonus!" }; },
+  ];
+  const t = pick(templates)();
+  return buildProblem(t.q, t.ans, t.hint, 'word');
+}
+
+// ─────────────────────────────────────────────
+//  STATE
+// ─────────────────────────────────────────────
+const TOTAL_PER_WORLD = 250;
+const COMPETENCY_THRESHOLD = 0.9;
+const MAP_START = 228, MAP_END = 260;
+
+const STATE = {
+  name: 'Sam',
+  mapScore: 228,
+  lives: 3,
+  totalPoints: 0,
+  streak: 0,
+  currentWorld: 0,
+  worlds: [
+    { name:'Asteroid Belt', grade:'4th', emoji:'☄️', color:'#00d2d3', unlocked:true,  completed:false, questionsAnswered:0, correctAnswers:0, problems:[], order:[], orderPos:0 },
+    { name:'Lava Planet',   grade:'5th', emoji:'🌋', color:'#ff6b35', unlocked:false, completed:false, questionsAnswered:0, correctAnswers:0, problems:[], order:[], orderPos:0 },
+    { name:'Crystal Galaxy',grade:'6th', emoji:'💎', color:'#a855f7', unlocked:false, completed:false, questionsAnswered:0, correctAnswers:0, problems:[], order:[], orderPos:0 },
+  ],
+};
+
+// ─────────────────────────────────────────────
+//  QUESTION QUEUE — no-repeat until all 250 done
+// ─────────────────────────────────────────────
+function initWorldQueue(world, generator) {
+  world.problems = generator();            // 250 fresh random problems
+  world.order    = fisherYates(Array.from({length: TOTAL_PER_WORLD}, (_,i) => i));
+  world.orderPos = 0;
+}
+
+function currentQuestion(world) {
+  // If we've gone through all 250, reshuffle and restart
+  if (world.orderPos >= TOTAL_PER_WORLD) {
+    world.order    = fisherYates(Array.from({length: TOTAL_PER_WORLD}, (_,i) => i));
+    world.orderPos = 0;
+    world.problems = [gen4thProblems, gen5thProblems, gen6thProblems][STATE.currentWorld]();
+  }
+  return world.problems[world.order[world.orderPos]];
+}
+
+function advanceQueue(world) {
+  world.orderPos++;
+}
+
+// ─────────────────────────────────────────────
+//  STARS
+// ─────────────────────────────────────────────
+(function initStars() {
+  const container = document.getElementById('stars-bg');
+  for (let i=0; i<120; i++) {
+    const star = document.createElement('div');
+    star.className = 'star';
+    const size = Math.random()*3+1;
+    star.style.cssText = `width:${size}px;height:${size}px;top:${Math.random()*100}%;left:${Math.random()*100}%;animation-delay:${Math.random()*3}s;animation-duration:${2+Math.random()*3}s`;
+    container.appendChild(star);
+  }
+})();
+
+// ─────────────────────────────────────────────
+//  PERSISTENCE
+// ─────────────────────────────────────────────
+const SAVE_KEY = 'mathquest_save_v2';
+
+// ─── Storage: window.name (works in Google Sites iframes) + fallbacks ───
+function _storeGet(key) {
+  try { var s=JSON.parse(window.name||'{}'); if (s[key]) return JSON.parse(s[key]); } catch(e) {}
+  try { var r=sessionStorage.getItem(key); if (r) return JSON.parse(r); } catch(e) {}
+  try { var r=localStorage.getItem(key);   if (r) return JSON.parse(r); } catch(e) {}
+  return null;
+}
+function _storeSet(key, val) {
+  var json = JSON.stringify(val);
+  try { var s={}; try{s=JSON.parse(window.name||'{}')||{};}catch(e){} s[key]=json; window.name=JSON.stringify(s); } catch(e) {}
+  try { sessionStorage.setItem(key, json); } catch(e) {}
+  try { localStorage.setItem(key, json);   } catch(e) {}
+}
+function _storeDel(key) {
+  try { var s={}; try{s=JSON.parse(window.name||'{}')||{};}catch(e){} delete s[key]; window.name=JSON.stringify(s); } catch(e) {}
+  try { sessionStorage.removeItem(key); } catch(e) {}
+  try { localStorage.removeItem(key);   } catch(e) {}
+}
+
+function saveProgress() {
+  try {
+    const snapshot = {
+      name:         STATE.name,
+      mapScore:     STATE.mapScore,
+      lives:        STATE.lives,
+      totalPoints:  STATE.totalPoints,
+      streak:       STATE.streak,
+      currentWorld: STATE.currentWorld,
+      worlds: STATE.worlds.map(w => ({
+        unlocked:          w.unlocked,
+        completed:         w.completed,
+        questionsAnswered: w.questionsAnswered,
+        correctAnswers:    w.correctAnswers,
+        orderPos:          w.orderPos,
+        order:             w.order,
+      })),
+      savedAt: Date.now(),
+    };
+    _storeSet(SAVE_KEY, snapshot);
+  } catch(e) {}
+}
+
+function loadProgress() {
+  try {
+    const snap = _storeGet(SAVE_KEY);
+    if (!snap) return null;
+    if (!snap.name || !Array.isArray(snap.worlds) || snap.worlds.length !== 3) return null;
+    return snap;
+  } catch(e) { return null; }
+}
+
+function clearProgress() {
+  _storeDel(SAVE_KEY);
+}
+
+const GENERATORS = [gen4thProblems, gen5thProblems, gen6thProblems];
+
+function applySnapshot(snap) {
+  STATE.name         = snap.name;
+  STATE.mapScore     = snap.mapScore;
+  STATE.lives        = snap.lives;
+  STATE.totalPoints  = snap.totalPoints;
+  STATE.streak       = snap.streak       || 0;
+  STATE.currentWorld = snap.currentWorld || 0;
+
+  snap.worlds.forEach((sw, i) => {
+    const w = STATE.worlds[i];
+    w.unlocked          = sw.unlocked;
+    w.completed         = sw.completed;
+    w.questionsAnswered = sw.questionsAnswered;
+    w.correctAnswers    = sw.correctAnswers;
+    // Regenerate a fresh problem set (new random numbers every session)
+    w.problems = GENERATORS[i]();
+    if (Array.isArray(sw.order) && sw.order.length === TOTAL_PER_WORLD) {
+      // Restore the saved shuffle order so we resume without repeating
+      w.order    = sw.order;
+      w.orderPos = sw.orderPos || 0;
+    } else {
+      w.order    = fisherYates(Array.from({length: TOTAL_PER_WORLD}, (_,k) => k));
+      w.orderPos = 0;
+    }
+  });
+}
+
+// ─────────────────────────────────────────────
+//  SCREENS
+// ─────────────────────────────────────────────
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ─────────────────────────────────────────────
+//  START GAME
+// ─────────────────────────────────────────────
+function startGame() {
+  STATE.name = 'Sam';
+  STATE.worlds.forEach((w, i) => initWorldQueue(w, GENERATORS[i]));
+  saveProgress();
+  updateMapUI();
+  showScreen('map-screen');
+}
+
+// ─────────────────────────────────────────────
+//  RESUME CHECK (runs on page load)
+// ─────────────────────────────────────────────
+function checkResume() {
+  try {
+    const snap = loadProgress();
+    if (!snap) return;
+    try { applySnapshot(snap); } catch(e) { clearProgress(); return; }
+
+    const w       = STATE.worlds[STATE.currentWorld];
+    const acc     = w.questionsAnswered > 0 ? Math.round(w.correctAnswers / w.questionsAnswered * 100) : 0;
+    const pctDone = Math.round(w.questionsAnswered / 250 * 100);
+
+    const detail = document.getElementById('resume-detail');
+    if (detail) {
+      detail.innerHTML =
+        w.emoji + ' <strong style="color:#f0f4ff">' + w.name + '</strong>'
+      + ' &nbsp;·&nbsp; Q' + w.questionsAnswered + ' / 250'
+      + (w.questionsAnswered > 0 ? ' &nbsp;·&nbsp; ' + pctDone + '% done &nbsp;·&nbsp; ' + acc + '% correct' : '')
+      + '<br><span style="color:var(--gold)">MAP Score: ' + snap.mapScore + '</span>';
+    }
+
+    const panel    = document.getElementById('resume-panel');
+    const startBtn = document.getElementById('start-btn');
+    if (panel)    panel.style.display = 'flex';
+    if (startBtn) startBtn.style.display = 'none';
+  } catch(e) { clearProgress(); }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', checkResume);
+} else {
+  checkResume();
+}
+
+// ─────────────────────────────────────────────
+//  MAP UI
+// ─────────────────────────────────────────────
+function updateMapUI() {
+  document.getElementById('hud-name').textContent     = STATE.name;
+  document.getElementById('hud-map-score').textContent = STATE.mapScore;
+  updateHudLives();
+
+  STATE.worlds.forEach((w, i) => {
+    const card  = document.getElementById(`world-card-${i}`);
+    const bar   = document.getElementById(`world-progress-${i}`);
+    const ptext = document.getElementById(`world-ptext-${i}`);
+    const acc   = w.questionsAnswered > 0 ? Math.round(w.correctAnswers/w.questionsAnswered*100) : 0;
+
+    card.className = 'world-card';
+    if (!w.unlocked) {
+      card.classList.add('locked');
+      ptext.textContent = '🔒 Locked';
+    } else if (w.completed) {
+      card.classList.add('completed');
+      bar.style.width = '100%';
+      ptext.textContent = `✅ Complete! ${acc}%`;
+    } else {
+      card.classList.add(i === STATE.currentWorld ? 'active-world' : 'available');
+      const prog = Math.round(w.questionsAnswered/TOTAL_PER_WORLD*100);
+      bar.style.width = `${prog}%`;
+      ptext.textContent = w.questionsAnswered > 0 ? `${prog}% done · ${acc}% correct` : '0% Complete';
+    }
+  });
+
+  const pct = Math.max(0, Math.min(100, (STATE.mapScore-MAP_START)/(MAP_END-MAP_START)*100));
+  document.getElementById('map-score-bar').style.width   = `${pct}%`;
+  document.getElementById('map-display-score').textContent = STATE.mapScore;
+}
+
+function updateHudLives() {
+  document.getElementById('hud-lives').textContent =
+    '❤️'.repeat(Math.max(0, STATE.lives)) + '🖤'.repeat(Math.max(0, 3-STATE.lives));
+}
+
+// ─────────────────────────────────────────────
+//  ENTER WORLD
+// ─────────────────────────────────────────────
+function enterWorld(worldIdx) {
+  const world = STATE.worlds[worldIdx];
+  if (!world.unlocked) return;
+  STATE.currentWorld = worldIdx;
+  // Ensure queue is initialised (e.g. after fresh load with no save)
+  if (!world.problems.length) initWorldQueue(world, GENERATORS[worldIdx]);
+  showQuestion();
+  showScreen('question-screen');
+}
+
+// ─────────────────────────────────────────────
+//  SHOW QUESTION
+// ─────────────────────────────────────────────
+const CHARACTERS = [
+  { name:'Cosmo 🤖', avatar:'🤖', msgs:['You can do it!','Think carefully!',"I believe in you!","Don't give up!"] },
+  { name:'Nova ⭐',  avatar:'⭐',  msgs:['Great focus!',"You're amazing!","Almost there!","Keep going!"] },
+  { name:'Blaze 🚀', avatar:'🚀',  msgs:['Blast through it!',"Rocket brain activate!","Speed AND accuracy!","Let's go!"] },
+];
+
+function showQuestion() {
+  const world = STATE.worlds[STATE.currentWorld];
+  const q = currentQuestion(world);
+
+  // HUD
+  document.getElementById('q-world-name').textContent    = `${world.emoji} ${world.name}`;
+  document.getElementById('q-progress-text').textContent = `Question ${world.questionsAnswered+1} of ${TOTAL_PER_WORLD}`;
+  document.getElementById('q-progress-bar').style.width  = `${(world.questionsAnswered/TOTAL_PER_WORLD)*100}%`;
+  document.getElementById('q-streak').textContent        = `🔥 ${STATE.streak} streak`;
+  document.getElementById('q-score-mini').textContent    = `⭐ ${STATE.totalPoints} pts`;
+
+  // Sidekick
+  const char = CHARACTERS[world.questionsAnswered % 3];
+  document.getElementById('char-avatar').textContent = char.avatar;
+  document.getElementById('char-name').textContent   = char.name;
+  document.getElementById('char-msg').textContent    = char.msgs[world.questionsAnswered % char.msgs.length];
+
+  // Badge
+  const badge = document.getElementById('q-type-badge');
+  badge.textContent = q.type === 'word' ? '📖 Word Problem' : '🔢 Math';
+  badge.className   = `question-type-badge ${q.type==='word' ? 'badge-word' : 'badge-math'}`;
+  document.getElementById('question-text').textContent = q.question;
+  document.getElementById('q-hint').textContent        = q.hint ? `💡 Hint: ${q.hint}` : '';
+
+  // Reset
+  document.getElementById('feedback-area').className   = 'feedback-area';
+  document.getElementById('feedback-area').textContent  = '';
+  document.getElementById('next-btn-wrap').style.display = 'none';
+
+  // Answer area
+  const area = document.getElementById('answer-area');
+  area.innerHTML = '';
+
+  if (q.choices && q.choices.length) {
+    const grid = document.createElement('div');
+    grid.className = 'choices-grid';
+    q.choices.forEach(c => {
+      const btn = document.createElement('button');
+      btn.type = 'button'; btn.className = 'choice-btn';
+      btn.textContent = c;
+      btn.onclick = () => checkAnswer(c, q, btn, grid);
+      grid.appendChild(btn);
+    });
+    area.appendChild(grid);
+  } else {
+    const wrap = document.createElement('div');
+    wrap.className = 'free-answer-wrap';
+    const input = document.createElement('input');
+    input.className='free-input'; input.id='free-input'; input.type='text';
+    input.placeholder='Type your answer…';
+    input.setAttribute('autocomplete','off');
+    input.setAttribute('autocorrect','off');
+    input.setAttribute('autocapitalize','none');
+    input.setAttribute('spellcheck','false');
+    input.setAttribute('inputmode', q.type==='word' ? 'text' : 'decimal');
+    input.addEventListener('keydown', e => { if (e.key==='Enter') checkFreeAnswer(q); });
+    const btn = document.createElement('button');
+    btn.type='button'; btn.className='btn-submit'; btn.textContent='Check!';
+    btn.onclick = () => checkFreeAnswer(q);
+    wrap.appendChild(input); wrap.appendChild(btn);
+    area.appendChild(wrap);
+    const isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+    if (!isTouch) setTimeout(() => input.focus(), 100);
+  }
+}
+
+function checkFreeAnswer(q) {
+  const input = document.getElementById('free-input');
+  if (!input || input.value.trim() === '') return;
+  input.disabled = true;
+  const val = input.value.trim();
+  const ua  = isNaN(val) ? val.toLowerCase() : Math.round(parseFloat(val)*100)/100;
+  const ca  = typeof q.answer==='string' ? q.answer.toLowerCase() : Math.round(q.answer*100)/100;
+  const ok  = String(ua)===String(ca) || (typeof ua==='number' && typeof ca==='number' && Math.abs(ua-ca)<0.05);
+  input.style.borderColor = ok ? 'var(--green)' : 'var(--bright)';
+  handleResult(ok, q);
+}
+
+function checkAnswer(chosen, q, btn, grid) {
+  grid.querySelectorAll('.choice-btn').forEach(b => b.disabled=true);
+  const ok = String(chosen).toLowerCase()===String(q.answer).toLowerCase() ||
+             (typeof chosen==='number' && Math.abs(chosen-q.answer)<0.05);
+  btn.classList.add(ok ? 'correct-ans' : 'wrong-ans');
+  if (!ok) {
+    grid.querySelectorAll('.choice-btn').forEach(b => {
+      if (String(b.textContent).toLowerCase()===String(q.answer).toLowerCase()) b.classList.add('correct-ans');
+    });
+  }
+  handleResult(ok, q);
+}
+
+function handleResult(isCorrect, q) {
+  const world = STATE.worlds[STATE.currentWorld];
+  world.questionsAnswered++;
+  advanceQueue(world);
+
+  const fb = document.getElementById('feedback-area');
+  if (isCorrect) {
+    world.correctAnswers++;
+    STATE.streak++;
+    STATE.totalPoints += 10 + (STATE.streak>=5?5:0) + (STATE.streak>=10?5:0);
+    if (world.questionsAnswered%5===0) STATE.mapScore = Math.min(MAP_END, STATE.mapScore+1);
+    const msgs=['🎉 Correct! Amazing!','🌟 Perfect!','🚀 Blasting it!','⭐ You rock!','💎 Excellent!','🔥 On fire!'];
+    fb.textContent = msgs[Math.floor(Math.random()*msgs.length)] + (STATE.streak>=5 ? ` 🔥 ${STATE.streak} streak BONUS!` : '');
+    fb.className   = 'feedback-area show correct-fb';
+  } else {
+    STATE.streak = 0;
+    STATE.lives  = Math.max(0, STATE.lives-1);
+    updateHudLives();
+    fb.textContent = `Not quite! The answer is ${q.answer}. Keep going! 💪`;
+    fb.className   = 'feedback-area show wrong-fb';
+  }
+
+  document.getElementById('q-streak').textContent    = `🔥 ${STATE.streak} streak`;
+  document.getElementById('q-score-mini').textContent = `⭐ ${STATE.totalPoints} pts`;
+
+  if (world.questionsAnswered >= TOTAL_PER_WORLD) {
+    saveProgress();
+    setTimeout(() => evaluateWorldEnd(), 1200);
+  } else {
+    if (world.questionsAnswered%50===0 && STATE.lives<3) { STATE.lives=Math.min(3,STATE.lives+1); updateHudLives(); }
+    document.getElementById('next-btn-wrap').style.display = 'block';
+    saveProgress();
+  }
+}
+
+function nextQuestion() { showQuestion(); }
+
+// ─────────────────────────────────────────────
+//  WORLD END
+// ─────────────────────────────────────────────
+function evaluateWorldEnd() {
+  const world    = STATE.worlds[STATE.currentWorld];
+  const accuracy = world.questionsAnswered > 0 ? world.correctAnswers/world.questionsAnswered : 0;
+  const passed   = accuracy >= COMPETENCY_THRESHOLD;
+
+  document.getElementById('lu-emoji').textContent    = passed ? ['🎉','🏅','💎'][STATE.currentWorld] : '💪';
+  document.getElementById('lu-title').textContent    = passed ? ['Asteroid Belt Complete!','Lava Planet Mastered!','Crystal Galaxy Conquered!'][STATE.currentWorld] : `Keep Going, ${STATE.name}!`;
+  document.getElementById('lu-desc').textContent     = [
+    `You've mastered 4th grade math! ${passed ? 'You earned 90%+ and unlocked the next world! 🌋' : 'Keep practicing to reach 90% and unlock the next world!'}`,
+    `You've conquered 5th grade! ${passed ? 'Excellent! The Crystal Galaxy awaits! 💎' : 'Aim for 90% to unlock the Crystal Galaxy!'}`,
+    `You've defeated the Crystal Galaxy! You're a true Math Hero! 🏆`
+  ][STATE.currentWorld];
+  document.getElementById('lu-correct').textContent  = world.correctAnswers;
+  document.getElementById('lu-accuracy').textContent = `${Math.round(accuracy*100)}%`;
+
+  const gain = Math.round((world.correctAnswers/TOTAL_PER_WORLD)*12);
+  STATE.mapScore = Math.min(MAP_END, STATE.mapScore+gain);
+  document.getElementById('lu-score-gain').textContent = `+${gain}`;
+
+  if (passed) {
+    world.completed = true;
+    if (STATE.currentWorld < 2) {
+      STATE.worlds[STATE.currentWorld+1].unlocked = true;
+      document.getElementById('lu-btn').textContent = `Enter ${STATE.worlds[STATE.currentWorld+1].name} 🚀`;
+    } else {
+      document.getElementById('lu-btn').textContent = 'Claim Your Trophy! 🏆';
+    }
+    saveProgress();
+    spawnConfetti();
+  } else {
+    // Retry — regenerate fresh random problems and a new shuffle order
+    world.questionsAnswered = 0;
+    world.correctAnswers    = 0;
+    initWorldQueue(world, GENERATORS[STATE.currentWorld]);
+    document.getElementById('lu-btn').textContent = 'Try Again! 💪';
+    saveProgress();
+  }
+
+  showScreen('levelup-screen');
+}
+
+function afterLevelUp() {
+  const world = STATE.worlds[STATE.currentWorld];
+  if (world.completed && STATE.currentWorld === 2) {
+    clearProgress();
+    document.getElementById('final-score-val').textContent = STATE.mapScore;
+    spawnConfetti(); spawnConfetti();
+    showScreen('win-screen');
+    return;
+  }
+  if (world.completed && STATE.currentWorld < 2) STATE.currentWorld++;
+  saveProgress();
+  updateMapUI();
+  showScreen('map-screen');
+}
+
+function playAgain() {
+  clearProgress();
+  Object.assign(STATE, { mapScore:228, lives:3, totalPoints:0, streak:0, currentWorld:0 });
+  STATE.worlds.forEach((w,i) => {
+    w.unlocked=i===0; w.completed=false; w.questionsAnswered=0; w.correctAnswers=0;
+    initWorldQueue(w, GENERATORS[i]);
+  });
+  updateMapUI();
+  showScreen('map-screen');
+}
+
+// ─────────────────────────────────────────────
+//  CONFETTI
+// ─────────────────────────────────────────────
+function spawnConfetti() {
+  const colors=['#ffd700','#ff6b35','#00d2d3','#a855f7','#0f9b58','#e94560','#f0f4ff'];
+  for (let i=0; i<80; i++) {
+    const el=document.createElement('div');
+    el.className='confetti-piece';
+    const size=6+Math.random()*10;
+    el.style.cssText=`left:${Math.random()*100}vw;width:${size}px;height:${size}px;background:${colors[Math.floor(Math.random()*colors.length)]};border-radius:${Math.random()>0.5?'50%':'2px'};animation-duration:${1.5+Math.random()*2}s;animation-delay:${Math.random()*0.8}s`;
+    document.body.appendChild(el);
+    setTimeout(()=>el.remove(), 4000);
+  }
+}
+
+// ─────────────────────────────────────────────
+//  iPAD / iOS
+// ─────────────────────────────────────────────
+document.body.style.touchAction = 'manipulation';
+document.addEventListener('touchmove', e => {
+  if (e.target===document.body || e.target===document.getElementById('app')) e.preventDefault();
+}, { passive:false });
+document.addEventListener('touchstart', e => {
+  const b=e.target.closest('button,.world-card:not(.locked),.choice-btn');
+  if (b) b.style.opacity='0.82';
+}, { passive:true });
+document.addEventListener('touchend', e => {
+  const b=e.target.closest('button,.world-card:not(.locked),.choice-btn');
+  if (b) setTimeout(()=>{ b.style.opacity=''; }, 150);
+}, { passive:true });
+window.addEventListener('resize', () => {
+  const active=document.querySelector('.screen.active');
+  if (active) { const f=active.querySelector('input:focus'); if (f) setTimeout(()=>f.scrollIntoView({behavior:'smooth',block:'center'}),100); }
+});
+</script>
+</body>
+</html>
