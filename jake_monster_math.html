@@ -1,0 +1,1420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Jake's Monster Math!</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Boogaloo&family=Patrick+Hand:wght@400&display=swap" rel="stylesheet">
+<style>
+/* ══════════════════════════════════════
+   TOKENS
+══════════════════════════════════════ */
+:root {
+  --mud:      #1a1200;
+  --swamp:    #0d2b0d;
+  --slime:    #4caf22;
+  --lime:     #a8e63d;
+  --purple:   #8b2fc9;
+  --violet:   #c362ff;
+  --orange:   #ff7b00;
+  --yellow:   #ffe135;
+  --red:      #e8233a;
+  --teal:     #00e5c8;
+  --bone:     #f5f0dc;
+  --card:     rgba(10,30,10,0.72);
+  --border:   rgba(168,230,61,0.22);
+  --font-disp:'Boogaloo', cursive;
+  --font-body:'Patrick Hand', cursive;
+}
+
+/* ══════════════════════════════════════
+   RESET & BASE
+══════════════════════════════════════ */
+*, *::before, *::after {
+  box-sizing: border-box; margin: 0; padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+html { min-height: -webkit-fill-available; }
+body {
+  font-family: var(--font-body);
+  background: var(--mud);
+  color: var(--bone);
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+  overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
+  overscroll-behavior: none;
+}
+
+/* ══════════════════════════════════════
+   ANIMATED BACKGROUND
+══════════════════════════════════════ */
+#bg-canvas {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden;
+  background: radial-gradient(ellipse at 20% 10%, #1f3a0f 0%, #0d1a0d 40%, #1a1200 100%);
+}
+.bg-eye {
+  position: absolute; border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, #ffe135 0%, #ff7b00 50%, #3a1800 100%);
+  animation: eyeBlink 4s ease-in-out infinite;
+  box-shadow: 0 0 20px rgba(255,225,53,0.4);
+}
+.bg-eye::after {
+  content:''; position: absolute; inset: 30%; border-radius: 50%;
+  background: #1a0800; box-shadow: inset 0 0 6px rgba(255,100,0,0.5);
+}
+@keyframes eyeBlink {
+  0%,45%,55%,100% { transform: scaleY(1); }
+  50% { transform: scaleY(0.08); }
+}
+.bg-slime {
+  position: absolute; width: 60px; border-radius: 0 0 40px 40px;
+  background: linear-gradient(180deg, rgba(76,175,34,0.7), rgba(76,175,34,0));
+  animation: drip linear infinite;
+  top: 0; transform-origin: top center;
+}
+@keyframes drip {
+  0%   { height: 0px;  opacity: 0; }
+  10%  { opacity: 1; }
+  80%  { opacity: 1; }
+  100% { height: 220px; opacity: 0; }
+}
+.bg-bone {
+  position: absolute; font-size: 1.8rem;
+  animation: boneSpin linear infinite;
+  opacity: 0.12;
+}
+@keyframes boneSpin {
+  0%   { transform: rotate(0deg) translateY(0); }
+  100% { transform: rotate(360deg) translateY(-30px); }
+}
+
+/* ══════════════════════════════════════
+   APP SHELL
+══════════════════════════════════════ */
+#app { position: relative; z-index: 1; min-height: 100vh; }
+
+.screen {
+  display: none;
+  min-height: 100vh; min-height: -webkit-fill-available;
+  padding: 20px;
+  padding-bottom: max(24px, env(safe-area-inset-bottom));
+  flex-direction: column; align-items: center; justify-content: center;
+  gap: 18px;
+  overflow-y: auto; -webkit-overflow-scrolling: touch;
+}
+.screen.active { display: flex; }
+
+/* ══════════════════════════════════════
+   INTRO SCREEN
+══════════════════════════════════════ */
+#intro-screen {
+  background: radial-gradient(ellipse at 50% 20%, #1f3a0f 0%, #0d1a0d 60%, #1a1200 100%);
+  text-align: center;
+}
+
+.monster-hero {
+  font-size: 7rem; display: block;
+  animation: monsterBounce 1.6s ease-in-out infinite alternate;
+  filter: drop-shadow(0 0 20px rgba(76,175,34,0.7));
+  line-height: 1;
+}
+@keyframes monsterBounce {
+  0%   { transform: translateY(0) rotate(-6deg) scale(1); }
+  100% { transform: translateY(-16px) rotate(6deg) scale(1.05); }
+}
+
+.game-title {
+  font-family: var(--font-disp);
+  font-size: clamp(2.6rem, 9vw, 5.5rem);
+  line-height: 1;
+  background: linear-gradient(135deg, var(--lime) 0%, var(--yellow) 50%, var(--orange) 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  filter: drop-shadow(0 3px 0 rgba(0,0,0,0.5));
+  animation: titleWobble 3s ease-in-out infinite alternate;
+}
+@keyframes titleWobble {
+  0%   { letter-spacing: 1px; filter: drop-shadow(0 3px 0 rgba(0,0,0,0.5)) drop-shadow(0 0 8px rgba(168,230,61,0.3)); }
+  100% { letter-spacing: 3px; filter: drop-shadow(0 3px 0 rgba(0,0,0,0.5)) drop-shadow(0 0 25px rgba(255,225,53,0.6)); }
+}
+
+.game-sub {
+  font-family: var(--font-disp); font-size: 1.3rem;
+  color: var(--violet); letter-spacing: 2px;
+}
+
+.intro-bubble {
+  max-width: 440px; background: var(--card); border: 2px solid var(--border);
+  border-radius: 22px; padding: 18px 24px;
+  font-size: 1.1rem; line-height: 1.75; color: rgba(245,240,220,0.88);
+}
+.intro-bubble strong { color: var(--lime); font-family: var(--font-disp); font-size: 1.15em; }
+
+.name-display {
+  font-family: var(--font-disp); font-size: 1.4rem;
+  background: linear-gradient(135deg, var(--teal), var(--lime));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  text-align: center;
+}
+
+/* ══════════════════════════════════════
+   BUTTONS
+══════════════════════════════════════ */
+.btn {
+  font-family: var(--font-disp); font-size: 1.4rem;
+  padding: 14px 38px; border: none; border-radius: 50px;
+  cursor: pointer; transition: all 0.18s;
+  touch-action: manipulation; -webkit-user-select: none; user-select: none;
+  min-height: 54px; -webkit-appearance: none; appearance: none;
+  position: relative; overflow: hidden;
+  letter-spacing: 1px;
+}
+.btn:active { transform: scale(0.93) !important; }
+
+.btn-go {
+  background: linear-gradient(135deg, var(--slime), var(--lime));
+  color: var(--mud); font-size: 1.7rem; padding: 18px 54px;
+  box-shadow: 0 6px 0 #1e5a00, 0 10px 30px rgba(76,175,34,0.5);
+}
+.btn-go:hover { transform: translateY(-3px); box-shadow: 0 9px 0 #1e5a00, 0 14px 35px rgba(76,175,34,0.6); }
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--purple), var(--violet));
+  color: white;
+  box-shadow: 0 5px 0 #4a0f80, 0 8px 22px rgba(139,47,201,0.45);
+}
+.btn-primary:hover { transform: translateY(-2px); }
+
+.btn-ghost {
+  background: rgba(255,255,255,0.08); color: var(--bone);
+  border: 2px solid rgba(255,255,255,0.2); font-size: 1.1rem; padding: 12px 28px;
+}
+.btn-wide { width: 100%; max-width: 500px; }
+
+/* ══════════════════════════════════════
+   HUD BAR
+══════════════════════════════════════ */
+.hud {
+  width: 100%; max-width: 680px;
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 18px; padding: 10px 18px;
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+}
+.hud-name  { font-family: var(--font-disp); font-size: 1.15rem; color: var(--yellow); }
+.hud-score { font-family: var(--font-disp); font-size: 1rem; color: var(--teal); }
+.hud-lives { font-size: 1.2rem; letter-spacing: 3px; }
+
+/* ══════════════════════════════════════
+   MAP SCREEN
+══════════════════════════════════════ */
+#map-screen {
+  justify-content: flex-start;
+  padding-top: max(24px, env(safe-area-inset-top));
+}
+
+.map-title {
+  font-family: var(--font-disp);
+  font-size: clamp(1.5rem, 5.5vw, 2.6rem);
+  background: linear-gradient(135deg, var(--slime), var(--lime));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  text-align: center; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
+}
+
+.dungeon-map {
+  display: flex; gap: 16px; flex-wrap: wrap; justify-content: center;
+  max-width: 720px; width: 100%;
+}
+
+.dungeon-card {
+  width: 198px; border-radius: 22px; padding: 22px 16px;
+  text-align: center; cursor: pointer;
+  transition: transform 0.22s, box-shadow 0.22s;
+  border: 2.5px solid transparent; position: relative; overflow: hidden;
+  touch-action: manipulation;
+}
+.dungeon-card.locked {
+  opacity: 0.38; cursor: not-allowed;
+  background: rgba(10,20,10,0.5); border-color: rgba(76,175,34,0.1);
+}
+.dungeon-card.available {
+  background: var(--card); border-color: var(--border);
+  animation: cardPulse 2.5s ease-in-out infinite alternate;
+}
+.dungeon-card.completed {
+  background: rgba(76,175,34,0.12); border-color: var(--slime);
+}
+.dungeon-card.current {
+  background: rgba(139,47,201,0.18); border-color: var(--violet);
+  animation: currentPulse 1.8s ease-in-out infinite alternate;
+}
+@keyframes cardPulse {
+  from { box-shadow: 0 0 10px rgba(76,175,34,0.15); }
+  to   { box-shadow: 0 0 28px rgba(76,175,34,0.45); }
+}
+@keyframes currentPulse {
+  from { box-shadow: 0 0 14px rgba(195,98,255,0.3); }
+  to   { box-shadow: 0 0 40px rgba(195,98,255,0.7); }
+}
+.dungeon-card:not(.locked):hover { transform: translateY(-6px) scale(1.03); }
+
+.card-monster { font-size: 3.8rem; display: block; margin-bottom: 8px; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.5)); }
+.card-name  { font-family: var(--font-disp); font-size: 1.2rem; margin-bottom: 3px; }
+.card-grade { font-size: 0.8rem; opacity: 0.6; margin-bottom: 10px; }
+
+.bar-wrap { background: rgba(255,255,255,0.08); border-radius: 8px; height: 9px; overflow: hidden; margin-bottom: 5px; }
+.bar-fill  { height: 100%; border-radius: 8px; transition: width 0.5s ease; }
+.bar-text  { font-family: var(--font-disp); font-size: 0.78rem; color: var(--lime); }
+
+/* MAP score meter */
+.score-meter {
+  width: 100%; max-width: 500px;
+  background: var(--card); border: 1.5px solid var(--border);
+  border-radius: 20px; padding: 14px 24px; text-align: center;
+}
+.score-lbl   { font-size: 0.85rem; color: rgba(245,240,220,0.5); margin-bottom: 3px; }
+.score-val   { font-family: var(--font-disp); font-size: 2.4rem; color: var(--yellow); display: block; }
+.score-outer { background: rgba(255,255,255,0.07); border-radius: 10px; height: 13px; overflow: hidden; margin-top: 8px; }
+.score-inner { height: 100%; border-radius: 10px; background: linear-gradient(90deg, var(--purple), var(--violet), var(--lime)); transition: width 0.8s ease; }
+.score-range { display: flex; justify-content: space-between; font-size: 0.72rem; color: rgba(245,240,220,0.38); margin-top: 4px; }
+
+/* ══════════════════════════════════════
+   QUESTION SCREEN
+══════════════════════════════════════ */
+#question-screen {
+  justify-content: flex-start;
+  padding-top: max(16px, env(safe-area-inset-top));
+  gap: 12px;
+}
+
+.q-top {
+  width: 100%; max-width: 680px;
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px;
+}
+.q-zone-tag { font-family: var(--font-disp); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--lime); }
+.q-num      { font-size: 0.72rem; color: rgba(245,240,220,0.42); }
+.q-streak   { font-family: var(--font-disp); font-size: 1.05rem; color: var(--orange); }
+.q-pts      { font-family: var(--font-disp); font-size: 1rem; color: var(--yellow); }
+
+.q-prog-outer { width: 100%; max-width: 680px; background: rgba(255,255,255,0.07); border-radius: 8px; height: 8px; overflow: hidden; }
+.q-prog-inner { height: 100%; border-radius: 8px; background: linear-gradient(90deg, var(--purple), var(--lime)); transition: width 0.4s ease; }
+
+/* Monster buddy */
+.buddy {
+  display: flex; align-items: flex-start; gap: 12px;
+  background: rgba(139,47,201,0.12); border: 1.5px solid rgba(195,98,255,0.25);
+  border-radius: 18px; padding: 11px 15px; width: 100%; max-width: 680px;
+}
+.buddy-face  { font-size: 2.4rem; flex-shrink: 0; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); animation: buddyWiggle 3s ease-in-out infinite; }
+@keyframes buddyWiggle { 0%,100%{transform:rotate(-4deg)} 50%{transform:rotate(4deg)} }
+.buddy-name  { font-family: var(--font-disp); font-size: 0.92rem; color: var(--violet); margin-bottom: 2px; }
+.buddy-msg   { font-size: 0.88rem; line-height: 1.5; color: rgba(245,240,220,0.82); }
+
+/* Question card */
+.q-card {
+  background: var(--card); border: 2px solid var(--border);
+  border-radius: 24px; padding: 24px 26px;
+  width: 100%; max-width: 680px;
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+.q-badge {
+  display: inline-block; padding: 4px 13px; border-radius: 20px;
+  font-family: var(--font-disp); font-size: 0.78rem; letter-spacing: 1px;
+  text-transform: uppercase; margin-bottom: 11px;
+}
+.badge-math { background: rgba(0,229,200,0.15); color: var(--teal); border: 1px solid var(--teal); }
+.badge-word { background: rgba(255,123,0,0.15); color: var(--orange); border: 1px solid var(--orange); }
+
+.q-text { font-size: clamp(1.1rem, 3.5vw, 1.4rem); font-weight: 400; line-height: 1.65; margin-bottom: 6px; }
+.q-hint { font-size: 0.83rem; color: rgba(245,240,220,0.42); font-style: italic; }
+
+/* Answers */
+.choices-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; width: 100%; max-width: 680px; }
+
+.choice-btn {
+  background: rgba(10,25,10,0.7); border: 2.5px solid rgba(76,175,34,0.2);
+  border-radius: 16px; padding: 16px 12px;
+  color: var(--bone); font-family: var(--font-body); font-size: 1.05rem;
+  font-weight: 400; cursor: pointer; transition: all 0.18s; text-align: center;
+  touch-action: manipulation; -webkit-user-select: none; user-select: none;
+  min-height: 62px; -webkit-appearance: none; appearance: none;
+  display: flex; align-items: center; justify-content: center;
+}
+.choice-btn:hover:not(:disabled) {
+  background: rgba(76,175,34,0.15); border-color: var(--slime); transform: scale(1.02);
+}
+.choice-btn.correct-ans {
+  background: rgba(76,175,34,0.28); border-color: var(--lime);
+  animation: correctPop 0.4s ease;
+}
+.choice-btn.wrong-ans {
+  background: rgba(232,35,58,0.22); border-color: var(--red);
+  animation: wrongShake 0.38s ease;
+}
+@keyframes correctPop  { 0%,100%{transform:scale(1)} 50%{transform:scale(1.07)} }
+@keyframes wrongShake  { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-8px)} 75%{transform:translateX(8px)} }
+
+/* Free answer */
+.free-wrap { display: flex; gap: 10px; width: 100%; max-width: 680px; }
+.free-input {
+  flex: 1; padding: 15px 18px; font-size: 1.15rem; font-family: var(--font-body);
+  border: 2.5px solid rgba(76,175,34,0.3); background: rgba(10,25,10,0.6);
+  color: var(--bone); border-radius: 14px; outline: none; text-align: center;
+  transition: border-color 0.25s;
+  -webkit-appearance: none; appearance: none; min-height: 56px;
+}
+.free-input:focus { border-color: var(--lime); }
+.btn-check {
+  background: linear-gradient(135deg, var(--purple), var(--teal));
+  color: white; border: none; border-radius: 14px;
+  padding: 0 22px; font-family: var(--font-disp); font-size: 1.1rem;
+  cursor: pointer; transition: transform 0.18s; min-height: 56px;
+  touch-action: manipulation; -webkit-appearance: none;
+}
+.btn-check:hover { transform: scale(1.05); }
+
+/* Feedback */
+.feedback {
+  width: 100%; max-width: 680px; padding: 13px 18px;
+  border-radius: 16px; font-family: var(--font-disp); font-size: 1.2rem;
+  text-align: center; display: none;
+}
+.feedback.show { display: block; animation: feedPop 0.28s ease; }
+@keyframes feedPop { from{transform:scale(0.85);opacity:0} to{transform:scale(1);opacity:1} }
+.feedback.ok  { background: rgba(76,175,34,0.22); border: 2px solid var(--slime); color: #b8ffaa; }
+.feedback.bad { background: rgba(232,35,58,0.18); border: 2px solid var(--red);   color: #ffb3bc; }
+
+.next-wrap { width: 100%; max-width: 680px; }
+
+/* ══════════════════════════════════════
+   LEVEL-UP SCREEN
+══════════════════════════════════════ */
+#levelup-screen {
+  text-align: center; gap: 20px;
+  background: radial-gradient(ellipse at center, rgba(139,47,201,0.25) 0%, transparent 70%);
+}
+.lu-monster { font-size: 6rem; animation: luSpin 0.7s ease; }
+@keyframes luSpin { from{transform:scale(0.3) rotate(-30deg);opacity:0} to{transform:scale(1) rotate(0);opacity:1} }
+.lu-title {
+  font-family: var(--font-disp);
+  font-size: clamp(1.9rem, 6vw, 3.4rem);
+  background: linear-gradient(135deg, var(--yellow), var(--lime), var(--violet));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.lu-desc { font-size: 1.05rem; max-width: 400px; line-height: 1.75; color: rgba(245,240,220,0.85); }
+.lu-stats {
+  display: flex; gap: 26px; flex-wrap: wrap; justify-content: center;
+  background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 18px 28px;
+}
+.stat-v { font-family: var(--font-disp); font-size: 2rem; color: var(--lime); display: block; }
+.stat-l { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: rgba(245,240,220,0.42); }
+
+/* ══════════════════════════════════════
+   WIN SCREEN
+══════════════════════════════════════ */
+#win-screen {
+  text-align: center; gap: 22px;
+  background: radial-gradient(ellipse at center, rgba(76,175,34,0.22) 0%, transparent 65%);
+}
+.win-title {
+  font-family: var(--font-disp);
+  font-size: clamp(2.2rem, 8vw, 4.5rem);
+  background: linear-gradient(135deg, var(--yellow), var(--lime), var(--teal));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  animation: titleWobble 1.5s ease-in-out infinite alternate;
+}
+.trophy-box {
+  background: var(--card); border: 2.5px solid var(--yellow);
+  border-radius: 22px; padding: 26px 40px; text-align: center;
+  box-shadow: 0 0 40px rgba(255,225,53,0.2);
+}
+.trophy-score { font-family: var(--font-disp); font-size: 4rem; color: var(--yellow); display: block; }
+.trophy-lbl   { font-size: 0.9rem; color: rgba(245,240,220,0.5); }
+
+/* ══════════════════════════════════════
+   CONFETTI
+══════════════════════════════════════ */
+.confetti-piece {
+  position: fixed; pointer-events: none; z-index: 999;
+  animation: cFall linear forwards;
+}
+@keyframes cFall {
+  0%   { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+}
+
+/* ══════════════════════════════════════
+   RESPONSIVE
+══════════════════════════════════════ */
+@media (min-width: 600px) and (max-width: 1024px) {
+  .choice-btn { min-height: 70px; font-size: 1.1rem; }
+  .btn        { min-height: 54px; }
+  .dungeon-card { width: 195px; }
+}
+@media (min-width: 900px) and (max-height: 720px) {
+  .monster-hero { font-size: 4.5rem; }
+  .game-title   { font-size: 3rem; }
+  #intro-screen { gap: 12px; }
+  #question-screen { gap: 8px; }
+  .q-card { padding: 18px 20px; }
+}
+@media (max-width: 480px) {
+  .choices-grid { grid-template-columns: 1fr; }
+  .dungeon-card { width: 155px; padding: 16px 12px; }
+  .lu-stats     { flex-direction: column; gap: 14px; }
+}
+</style>
+</head>
+<body>
+
+<!-- Atmosphere -->
+<div id="bg-canvas"></div>
+
+<div id="app">
+
+<!-- ════════════════ INTRO ════════════════ -->
+<div id="intro-screen" class="screen active">
+  <span class="monster-hero">👾</span>
+  <div class="game-title">MONSTER<br>MATH!</div>
+  <div class="game-sub">🦴 Jake's Monster Academy 🦴</div>
+  <div class="intro-bubble">
+    Hey <strong>Jake</strong>! 👋 Monsters have taken over three spooky dungeons and only a <strong>Math Hero</strong> can stop them!<br><br>
+    Answer math questions to battle through each dungeon, earn monster coins, and become the <strong>Ultimate Monster Tamer!</strong> 🏆<br><br>
+    Your progress is <strong>saved automatically</strong> — pick up right where you left off! 💾
+  </div>
+  <div class="name-display">Welcome, Jake! 🎃</div>
+
+  <!-- Resume panel — shown only when a save exists -->
+  <div id="resume-panel" style="display:none;flex-direction:column;align-items:center;gap:12px;width:100%;max-width:420px">
+    <div style="background:rgba(76,175,34,0.12);border:1.5px solid rgba(76,175,34,0.35);border-radius:18px;padding:16px 22px;text-align:center;width:100%">
+      <div style="font-family:var(--font-disp);font-size:1.1rem;color:var(--lime);margin-bottom:6px">👋 Welcome back, Jake!</div>
+      <div id="resume-detail" style="font-size:0.9rem;color:rgba(245,240,220,0.82);line-height:1.7"></div>
+    </div>
+    <button type="button" class="btn btn-go" style="font-size:1.3rem;padding:15px 40px" onclick="resumeGame()">▶ KEEP GOING!</button>
+    <button type="button" class="btn btn-ghost" onclick="startOver()">🔄 Start Over</button>
+  </div>
+
+  <button type="button" class="btn btn-go" id="start-btn" onclick="startGame()">⚔️ START ADVENTURE!</button>
+</div>
+
+<!-- ════════════════ MAP ════════════════ -->
+<div id="map-screen" class="screen">
+  <div class="hud">
+    <div class="hud-name">⚔️ Jake</div>
+    <div class="hud-score">MAP: <span id="hud-map">189</span></div>
+    <div class="hud-lives" id="hud-lives">❤️❤️❤️</div>
+  </div>
+
+  <div class="map-title">🗺️ Choose Your Dungeon!</div>
+
+  <div class="dungeon-map">
+    <!-- Dungeon 1 -->
+    <div class="dungeon-card" id="dcard-0" onclick="enterDungeon(0)">
+      <span class="card-monster">🧟</span>
+      <div class="card-name" style="color:#00e5c8">Zombie Swamp</div>
+      <div class="card-grade">2nd Grade · MAP 189–196</div>
+      <div class="bar-wrap"><div class="bar-fill" id="dbar-0" style="width:0%;background:linear-gradient(90deg,#00e5c8,#4caf22)"></div></div>
+      <div class="bar-text" id="dptext-0">0% Done</div>
+    </div>
+    <!-- Dungeon 2 -->
+    <div class="dungeon-card locked" id="dcard-1" onclick="enterDungeon(1)">
+      <span class="card-monster">🧙</span>
+      <div class="card-name" style="color:#c362ff">Witch's Tower</div>
+      <div class="card-grade">3rd Grade · MAP 196–204</div>
+      <div class="bar-wrap"><div class="bar-fill" id="dbar-1" style="width:0%;background:linear-gradient(90deg,#c362ff,#8b2fc9)"></div></div>
+      <div class="bar-text" id="dptext-1">🔒 Locked</div>
+    </div>
+    <!-- Dungeon 3 -->
+    <div class="dungeon-card locked" id="dcard-2" onclick="enterDungeon(2)">
+      <span class="card-monster">🐉</span>
+      <div class="card-name" style="color:#ffe135">Dragon's Lair</div>
+      <div class="card-grade">4th Grade · MAP 204–210</div>
+      <div class="bar-wrap"><div class="bar-fill" id="dbar-2" style="width:0%;background:linear-gradient(90deg,#ffe135,#ff7b00)"></div></div>
+      <div class="bar-text" id="dptext-2">🔒 Locked</div>
+    </div>
+  </div>
+
+  <div class="score-meter">
+    <div class="score-lbl">Jake's Monster Power</div>
+    <span class="score-val" id="map-val">189</span>
+    <div class="score-outer"><div class="score-inner" id="map-bar" style="width:0%"></div></div>
+    <div class="score-range"><span>189 (Start)</span><span>210 (LEGEND! 🏆)</span></div>
+  </div>
+</div>
+
+<!-- ════════════════ QUESTION ════════════════ -->
+<div id="question-screen" class="screen">
+  <div class="q-top">
+    <div>
+      <div class="q-zone-tag" id="q-zone">🧟 Zombie Swamp</div>
+      <div class="q-num"      id="q-num">Question 1 of 250</div>
+    </div>
+    <div class="q-streak" id="q-streak">🔥 0 streak</div>
+    <div class="q-pts"    id="q-pts">🪙 0 coins</div>
+  </div>
+
+  <div class="q-prog-outer"><div class="q-prog-inner" id="q-prog" style="width:0%"></div></div>
+
+  <div class="buddy" id="buddy">
+    <div class="buddy-face" id="buddy-face">👾</div>
+    <div>
+      <div class="buddy-name" id="buddy-name">Boo</div>
+      <div class="buddy-msg"  id="buddy-msg">You can do it, Jake!</div>
+    </div>
+  </div>
+
+  <div class="q-card">
+    <span class="q-badge" id="q-badge">Math</span>
+    <div class="q-text"   id="q-text">Loading…</div>
+    <div class="q-hint"   id="q-hint"></div>
+  </div>
+
+  <div id="answer-area"></div>
+  <div class="feedback" id="feedback"></div>
+  <div class="next-wrap" id="next-wrap" style="display:none">
+    <button type="button" class="btn btn-primary btn-wide" onclick="nextQuestion()">Next Monster ➡️</button>
+  </div>
+</div>
+
+<!-- ════════════════ LEVEL UP ════════════════ -->
+<div id="levelup-screen" class="screen">
+  <div class="lu-monster" id="lu-emoji">🎉</div>
+  <div class="lu-title"   id="lu-title">DUNGEON CLEARED!</div>
+  <p class="lu-desc"      id="lu-desc">Awesome job, Jake!</p>
+  <div class="lu-stats">
+    <div><span class="stat-v" id="lu-correct">0</span><div class="stat-l">Correct</div></div>
+    <div><span class="stat-v" id="lu-acc">0%</span><div class="stat-l">Accuracy</div></div>
+    <div><span class="stat-v" id="lu-gain">+0</span><div class="stat-l">MAP Pts</div></div>
+  </div>
+  <button type="button" class="btn btn-primary" id="lu-btn" onclick="afterLevelUp()">Keep Going! ⚔️</button>
+</div>
+
+<!-- ════════════════ WIN ════════════════ -->
+<div id="win-screen" class="screen">
+  <span style="font-size:6rem;animation:monsterBounce 1.2s ease-in-out infinite alternate;display:block;filter:drop-shadow(0 0 24px rgba(255,225,53,0.9))">🏆</span>
+  <div class="win-title">JAKE WINS!</div>
+  <p style="font-size:1.15rem;max-width:420px;text-align:center;line-height:1.8;color:rgba(245,240,220,0.9)">
+    🎉 You tamed ALL the monsters! You defeated the Zombie Swamp, the Witch's Tower, AND the Dragon's Lair!<br><br>
+    You are the <strong style="color:var(--lime)">ULTIMATE MONSTER TAMER!</strong> 🐉
+  </p>
+  <div class="trophy-box">
+    <span class="trophy-score" id="final-score">210</span>
+    <div class="trophy-lbl">Final MAP Score</div>
+  </div>
+  <button type="button" class="btn btn-go" onclick="playAgain()">🔄 Play Again!</button>
+</div>
+
+</div><!-- #app -->
+
+<script>
+/* ════════════════════════════════════════════
+   HELPERS
+════════════════════════════════════════════ */
+function ri(a, b)   { if (a > b) { let t=a; a=b; b=t; } return Math.floor(Math.random()*(b-a+1))+a; }
+function pick(arr)  { return arr[Math.floor(Math.random()*arr.length)]; }
+function gcd(a, b)  { return b===0 ? Math.abs(a) : gcd(b, a%b); }
+
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i=a.length-1; i>0; i--) {
+    const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
+
+function makeProblem(q, ans, hint, type, fixedChoices) {
+  let choices;
+  if (fixedChoices) {
+    choices = fixedChoices;
+  } else {
+    const num = typeof ans==='number' ? ans : parseFloat(ans);
+    if (!isNaN(num) && typeof ans!=='string') {
+      const seen = new Set([num]);
+      const base = Math.max(Math.abs(num), 4);
+      const deltas = [1,2,3,4,5,Math.ceil(base*0.1),Math.ceil(base*0.2),Math.ceil(base*0.4),6,7,8];
+      const wrongs = [];
+      let att = 0;
+      while (wrongs.length < 3 && att < 300) {
+        const d = deltas[att % deltas.length];
+        const s = att%2===0 ? 1 : -1;
+        const w = Math.round((num+s*d)*100)/100;
+        if (!seen.has(w)) { seen.add(w); wrongs.push(w); }
+        att++;
+      }
+      let fb=1; while (wrongs.length<3) { if (!seen.has(num+fb)) wrongs.push(num+fb); fb++; }
+      choices = shuffle([ans, ...wrongs.slice(0,3)]);
+    }
+  }
+  return { question:q, answer:ans, hint, type, choices };
+}
+
+/* ════════════════════════════════════════════
+   GRADE 2 — ZOMBIE SWAMP  (MAP 189-196)
+   Topics: add/sub to 100, skip count, shapes,
+           time, comparing numbers, simple word probs
+════════════════════════════════════════════ */
+function gen2nd() {
+  const math  = ['add2','sub2','skip','shapes','time','compare2','money','double','half','missing'];
+  const words = ['zombies','ghosts','spiders','candy','frogs','bats','monsters'];
+  const probs = [];
+  for (let i=0; i<200; i++) probs.push(math2(pick(math)));
+  for (let i=0; i<50;  i++) probs.push(word2(pick(words)));
+  return shuffle(probs);
+}
+
+function math2(type) {
+  let q, ans, hint, choices;
+  switch(type) {
+    case 'add2': {
+      const a=ri(1,50), b=ri(1,50);
+      q=`${a} + ${b} = ?`; ans=a+b; hint='Count up from the bigger number!'; break;
+    }
+    case 'sub2': {
+      const a=ri(10,99), b=ri(1,a);
+      q=`${a} − ${b} = ?`; ans=a-b; hint='Count back from the bigger number!'; break;
+    }
+    case 'skip': {
+      const step=pick([2,5,10]), start=ri(0,5)*step;
+      const seq=[start,start+step,start+2*step,start+3*step];
+      q=`Skip count: ${seq.join(', ')}, ___`; ans=start+4*step; hint=`Add ${step} each time!`; break;
+    }
+    case 'shapes': {
+      const shapes=[
+        {n:'triangle',s:3},{n:'square',s:4},{n:'pentagon',s:5},
+        {n:'hexagon',s:6},{n:'octagon',s:8}
+      ];
+      const sh=pick(shapes);
+      const useQ=Math.random()>0.5;
+      if(useQ) { q=`How many sides does a ${sh.n} have?`; ans=sh.s; hint='Picture the shape in your head!'; }
+      else      { q=`A shape has ${sh.s} sides. What is it?`; ans=sh.n; choices=shapes.map(s=>s.n); hint='Count the sides!'; }
+      break;
+    }
+    case 'time': {
+      const hr=ri(1,12), min=pick([0,15,30,45]);
+      const minStr=min===0?'00':String(min);
+      q=`A clock shows ${hr}:${minStr}. What time is it?`;
+      ans=`${hr}:${minStr}`; choices=[`${hr}:${minStr}`,`${(hr%12)+1}:${minStr}`,`${hr===1?12:hr-1}:${minStr}`,`${hr}:${min===0?30:0}`]; hint='Look at the hour hand first, then minutes!'; break;
+    }
+    case 'compare2': {
+      const a=ri(1,99), b=ri(1,99);
+      q=`${a} ___ ${b}  (choose >, <, or =)`; ans=a>b?'>':a<b?'<':'='; choices=['>','<','=']; hint='Which number is bigger?'; break;
+    }
+    case 'money': {
+      const q1=ri(0,3), d1=ri(0,4), n1=ri(0,3);
+      const total=q1*25+d1*10+n1*5;
+      q=`${q1} quarters, ${d1} dimes, ${n1} nickels. Total cents?`; ans=total; hint='25¢ + 10¢ + 5¢ for each coin!'; break;
+    }
+    case 'double': {
+      const n=ri(1,20); q=`Double ${n} = ?`; ans=n*2; hint='Add the number to itself!'; break;
+    }
+    case 'half': {
+      const n=pick([2,4,6,8,10,12,14,16,18,20]);
+      q=`Half of ${n} = ?`; ans=n/2; hint='Split into 2 equal groups!'; break;
+    }
+    case 'missing': {
+      const a=ri(1,20), b=ri(1,20);
+      q=`___ + ${b} = ${a+b}`; ans=a; hint='What + the number = the total? Count back!'; break;
+    }
+    default: { const a=ri(1,20),b=ri(1,20); q=`${a}+${b}=?`; ans=a+b; hint='Add!'; }
+  }
+  return makeProblem(q, ans, hint, 'math', choices);
+}
+
+function word2(theme) {
+  const chars = {
+    zombies: ['Zack the zombie','Zoe the zombie','Zombie Bob'],
+    ghosts:  ['Casper the ghost','Ghostly Gary','Spooky Sue'],
+    spiders: ['Spidey the spider','Eight-leg Eddie','Spinny Sam'],
+    candy:   ['Candy the witch','Sugar the skeleton','Caramel Carl'],
+    frogs:   ['Froggy Fern','Leap the frog','Boing the toad'],
+    bats:    ['Batsy Bat','Night Flyer','Wingsy Wanda'],
+    monsters:['Little Monster Mo','Big Monster Max','Fluffy the Monster'],
+  };
+  const char = pick(chars[theme] || chars.monsters);
+  const templates = [
+    ()=>{ const a=ri(5,30),b=ri(1,a-1); return{q:`${char} had ${a} monster coins. Gave away ${b}. How many left?`,ans:a-b,hint:'Take away = subtract!'}; },
+    ()=>{ const g=ri(2,5),e=ri(2,8);    return{q:`${char} found ${g} bags with ${e} bones each. Bones total?`,ans:g*e,hint:'Groups × each = multiply!'}; },
+    ()=>{ const a=ri(5,30),b=ri(1,20);  return{q:`${char} collected ${a} slimes, then found ${b} more. Total?`,ans:a+b,hint:'Found more = add!'}; },
+    ()=>{ const n=pick([2,4,6,8,10,12,14,16]); return{q:`${char} split ${n} potions into 2 equal rows. Each row has?`,ans:n/2,hint:'Split in half!'}; },
+    ()=>{ const s=pick([2,5,10]),c=ri(2,6); return{q:`${char} jumps in steps of ${s}. After ${c} jumps: ${s}...?`,ans:s*c,hint:`Skip count by ${s}!`}; },
+  ];
+  const t=pick(templates)();
+  return makeProblem(t.q, t.ans, t.hint, 'word');
+}
+
+/* ════════════════════════════════════════════
+   GRADE 3 — WITCH'S TOWER  (MAP 196-204)
+   Topics: mul/div facts, fractions, place value,
+           area, elapsed time, rounding
+════════════════════════════════════════════ */
+function gen3rd() {
+  const math  = ['mul3','div3','frac3','place3','area3','round3','elapsed','patterns3','multi3','compare3'];
+  const words = ['witches','potions','cauldrons','brooms','spell books','black cats','crystal balls'];
+  const probs = [];
+  for (let i=0; i<200; i++) probs.push(math3(pick(math)));
+  for (let i=0; i<50;  i++) probs.push(word3(pick(words)));
+  return shuffle(probs);
+}
+
+function math3(type) {
+  let q, ans, hint, choices;
+  switch(type) {
+    case 'mul3': {
+      const a=ri(2,12),b=ri(2,12);
+      q=`${a} × ${b} = ?`; ans=a*b; hint="Times tables — you've got this!"; break;
+    }
+    case 'div3': {
+      const b=ri(2,10),a0=ri(2,10);
+      q=`${b*a0} ÷ ${b} = ?`; ans=a0; hint='What number × the divisor = the top?'; break;
+    }
+    case 'frac3': {
+      const d=pick([2,3,4,6,8]), n=ri(1,d-1);
+      const type2=pick(['shade','bigger','equiv']);
+      if(type2==='shade')  { q=`What fraction is shaded? Total parts: ${d}, shaded: ${n}`; ans=`${n}/${d}`; choices=[`${n}/${d}`,`${d}/${n}`,`${n+1}/${d}`,`${n}/${d+1}`]; hint='Shaded ÷ Total parts!'; }
+      else if(type2==='bigger') { const n2=ri(1,d-1); const a_=`${n}/${d}`, b_=`${n2}/${d}`; q=`Which is bigger: ${a_} or ${b_}?`; ans=n>n2?a_:b_; choices=[a_,b_]; hint='Same bottom number? Bigger top wins!'; }
+      else { const mult=pick([2,3]); q=`${n}/${d} = ?/${d*mult}`; ans=n*mult; hint='Multiply top AND bottom by the same number!'; }
+      break;
+    }
+    case 'place3': {
+      const a=ri(100,9999);
+      const ps=[{n:'ones',v:1},{n:'tens',v:10},{n:'hundreds',v:100},{n:'thousands',v:1000}];
+      const p=pick(ps.filter(p=>p.v<=a));
+      q=`What digit is in the ${p.n} place of ${a.toLocaleString()}?`;
+      ans=Math.floor(a/p.v)%10; hint='Count from the right: ones, tens, hundreds…'; break;
+    }
+    case 'area3': {
+      const w=ri(2,15),h=ri(2,12);
+      q=`Area of a rectangle: ${w} units wide, ${h} units tall. Area = ?`; ans=w*h; hint='Area = length × width'; break;
+    }
+    case 'round3': {
+      const a=ri(100,9999), p=pick([10,100]);
+      q=`Round ${a.toLocaleString()} to the nearest ${p}.`; ans=Math.round(a/p)*p; hint='Look at the digit to the right of your rounding place!'; break;
+    }
+    case 'elapsed': {
+      const startH=ri(7,15), startM=pick([0,15,30,45]);
+      const dur=pick([15,30,45,60,90,120]);
+      const endTotalMin=startH*60+startM+dur;
+      const endH=Math.floor(endTotalMin/60)%24, endM=endTotalMin%60;
+      const fmt=h=>`${h>12?h-12:h===0?12:h}:${String(endM).padStart(2,'0')} ${h<12?'AM':'PM'}`;
+      q=`Start: ${fmt(startH)} + ${dur} minutes = ?`; ans=fmt(endH);
+      choices=[fmt(endH),fmt((endH+1)%24),fmt((endH-1+24)%24),fmt(endH).replace(endM===0?'00':String(endM),endM===0?'30':'00')];
+      hint='Add the minutes to the start time!'; break;
+    }
+    case 'patterns3': {
+      const start=ri(2,20), step=ri(3,15);
+      const seq=[start,start+step,start+2*step,start+3*step];
+      q=`Pattern: ${seq.join(', ')}, ___`; ans=start+4*step; hint='Find the gap between numbers!'; break;
+    }
+    case 'multi3': {
+      const a=ri(10,99),b=ri(2,9);
+      q=`${a} × ${b} = ?`; ans=a*b; hint='Break it apart: (tens×b) + (ones×b)'; break;
+    }
+    case 'compare3': {
+      const a=ri(100,9999),b=ri(100,9999);
+      q=`${a.toLocaleString()} ___ ${b.toLocaleString()}  (>, <, or =)`; ans=a>b?'>':a<b?'<':'='; choices=['>','<','=']; hint='Compare the biggest place value first!'; break;
+    }
+    default: { const a=ri(2,12),b=ri(2,12); q=`${a}×${b}=?`; ans=a*b; hint='Multiply!'; }
+  }
+  return makeProblem(q, ans, hint, 'math', choices);
+}
+
+function word3(theme) {
+  const char = pick(['Wanda the Witch','Professor Hex','Wizard Gloom','Enchantress Eve','Sorcerer Stew']);
+  const templates = [
+    ()=>{ const a=ri(3,9),b=ri(2,9);   return{q:`${char} put ${a} ${theme} in each of ${b} boxes. Total ${theme}?`,ans:a*b,hint:'Multiply groups × each!'}; },
+    ()=>{ const t=ri(4,12)*ri(2,8),d=ri(2,8); return{q:`${char} shared ${t} magic ${theme} equally among ${d} students. Each gets?`,ans:t/d,hint:'Divide total by groups!'}; },
+    ()=>{ const l=ri(3,14),w=ri(2,9);  return{q:`${char}'s spell board is ${l} tiles long and ${w} tiles wide. Area?`,ans:l*w,hint:'Area = length × width!'}; },
+    ()=>{ const a=ri(100,500),p=pick([10,100]); return{q:`${char} counted ${a} spell ingredients. Round to nearest ${p}?`,ans:Math.round(a/p)*p,hint:'Round up if 5 or more!'}; },
+    ()=>{ const a=ri(20,80),b=ri(5,a); return{q:`${char} had ${a} monster potions. Used ${b}. How many left?`,ans:a-b,hint:'Subtract the used ones!'}; },
+  ];
+  const t=pick(templates)();
+  return makeProblem(t.q, t.ans, t.hint, 'word');
+}
+
+/* ════════════════════════════════════════════
+   GRADE 4 — DRAGON'S LAIR  (MAP 204-210)
+   Topics: large mul/div, fractions, decimals,
+           geometry, factors, multi-step
+════════════════════════════════════════════ */
+function gen4th() {
+  const math  = ['bigMul','bigDiv','fracAdd','decAdd','factors','area4','perim','round4','expMul','compare4'];
+  const words = ['dragons','treasure','knights','castles','fire','gold coins','gems'];
+  const probs = [];
+  for (let i=0; i<200; i++) probs.push(math4(pick(math)));
+  for (let i=0; i<50;  i++) probs.push(word4(pick(words)));
+  return shuffle(probs);
+}
+
+function math4(type) {
+  let q, ans, hint, choices;
+  switch(type) {
+    case 'bigMul': {
+      const a=ri(10,99),b=ri(2,12);
+      q=`${a} × ${b} = ?`; ans=a*b; hint='Multiply the tens, then the ones, then add!'; break;
+    }
+    case 'bigDiv': {
+      const b=ri(2,12),a0=ri(10,50);
+      q=`${b*a0} ÷ ${b} = ?`; ans=a0; hint='Think: ? × divisor = dividend'; break;
+    }
+    case 'fracAdd': {
+      const d=pick([2,3,4,5,6,8]),n1=ri(1,d-1),n2=ri(1,d-1);
+      q=`${n1}/${d} + ${n2}/${d} = ?/${d}`; ans=n1+n2; hint='Same bottom? Just add the tops!'; break;
+    }
+    case 'decAdd': {
+      const a=(ri(10,990)/10).toFixed(1), b=(ri(10,990)/10).toFixed(1);
+      q=`${a} + ${b} = ?`; ans=Math.round((parseFloat(a)+parseFloat(b))*10)/10; hint='Line up the decimal points!'; break;
+    }
+    case 'factors': {
+      const n=pick([6,8,9,10,12,15,16,18,20,24,25,30,36]);
+      const f=[];
+      for(let i=1;i<=n;i++) if(n%i===0) f.push(i);
+      q=`How many factors does ${n} have?`; ans=f.length; hint='Find all numbers that divide evenly into it!'; break;
+    }
+    case 'area4': { const w=ri(3,20),h=ri(3,15); q=`Area: length=${w}, width=${h}. Area=?`; ans=w*h; hint='Area = length × width'; break; }
+    case 'perim':  { const w=ri(3,20),h=ri(3,15); q=`Perimeter: length=${w}, width=${h}. Perimeter=?`; ans=2*(w+h); hint='Perimeter = 2×(length+width)'; break; }
+    case 'round4': {
+      const a=ri(1000,99999),p=pick([10,100,1000]);
+      q=`Round ${a.toLocaleString()} to the nearest ${p.toLocaleString()}.`; ans=Math.round(a/p)*p; hint='Check the digit to the right!'; break;
+    }
+    case 'expMul': {
+      const b=pick([2,3,5,10]),e=ri(2,4);
+      q=`${b}^${e} = ? (${b} to the power of ${e})`; ans=Math.pow(b,e); hint='Multiply the base by itself that many times!'; break;
+    }
+    case 'compare4': {
+      const a=ri(1000,9999),b=ri(1000,9999);
+      q=`${a.toLocaleString()} ___ ${b.toLocaleString()}  (>, <, or =)`; ans=a>b?'>':a<b?'<':'='; choices=['>','<','=']; hint='Start at the biggest place value!'; break;
+    }
+    default: { const a=ri(10,99),b=ri(2,9); q=`${a}×${b}=?`; ans=a*b; hint='Multiply!'; }
+  }
+  return makeProblem(q, ans, hint, 'math', choices);
+}
+
+function word4(theme) {
+  const char = pick(['Dragon Drake','Sir Jake the Knight','Princess Puzzler','Brave Explorer Blake','The Wizard of Sums']);
+  const templates = [
+    ()=>{ const a=ri(10,99),b=ri(2,9);   return{q:`${char} found ${a} bags of ${theme} with ${b} in each. Total?`,ans:a*b,hint:'Multiply bags × each!'}; },
+    ()=>{ const b=ri(2,9),a0=ri(5,20);   return{q:`${char} shared ${b*a0} dragon ${theme} among ${b} dragons equally. Each gets?`,ans:a0,hint:'Divide total by number of groups!'}; },
+    ()=>{ const l=ri(5,20),w=ri(3,15);   return{q:`${char}'s treasure room is ${l}m long and ${w}m wide. Floor area?`,ans:l*w,hint:'Area = length × width'}; },
+    ()=>{ const n1=(ri(10,90)/10).toFixed(1), n2=(ri(10,90)/10).toFixed(1); return{q:`${char} collected ${n1}kg and ${n2}kg of ${theme}. Total kg?`,ans:Math.round((parseFloat(n1)+parseFloat(n2))*10)/10,hint:'Add the decimals — line up the points!'}; },
+    ()=>{ const a=ri(100,500),b=ri(10,a/2|0); return{q:`${char} had ${a} ${theme}. Gave ${b} to the village. How many left?`,ans:a-b,hint:'Subtract!'}; },
+  ];
+  const t=pick(templates)();
+  return makeProblem(t.q, t.ans, t.hint, 'word');
+}
+
+/* ════════════════════════════════════════════
+   STATE
+════════════════════════════════════════════ */
+const TOTAL = 250;
+const PASS  = 0.90;
+const MAP_MIN = 189, MAP_MAX = 210;
+const GENERATORS = [gen2nd, gen3rd, gen4th];
+
+const STATE = {
+  mapScore:     189,
+  lives:        3,
+  totalPoints:  0,
+  streak:       0,
+  currentDungeon: 0,
+  dungeons: [
+    { name:'Zombie Swamp', emoji:'🧟', unlocked:true,  completed:false, answered:0, correct:0, problems:[], order:[], pos:0 },
+    { name:"Witch's Tower",emoji:'🧙', unlocked:false, completed:false, answered:0, correct:0, problems:[], order:[], pos:0 },
+    { name:"Dragon's Lair",emoji:'🐉', unlocked:false, completed:false, answered:0, correct:0, problems:[], order:[], pos:0 },
+  ],
+};
+
+/* ════════════════════════════════════════════
+   QUEUE — no repeats until all 250 seen
+════════════════════════════════════════════ */
+function initQueue(d, genFn) {
+  d.problems = genFn();
+  d.order    = shuffle(Array.from({length:TOTAL},(_,i)=>i));
+  d.pos      = 0;
+}
+
+function currentQ(d) {
+  if (d.pos >= TOTAL) {
+    d.order    = shuffle(Array.from({length:TOTAL},(_,i)=>i));
+    d.pos      = 0;
+    d.problems = GENERATORS[STATE.currentDungeon]();
+  }
+  return d.problems[d.order[d.pos]];
+}
+
+function advQ(d) { d.pos++; }
+
+/* ════════════════════════════════════════════
+   ATMOSPHERE — runs after DOM ready
+════════════════════════════════════════════ */
+function buildAtmosphere() {
+  const bg = document.getElementById('bg-canvas');
+  if (!bg) return;
+  // Floating eyes
+  for (let i=0; i<6; i++) {
+    const eye=document.createElement('div');
+    eye.className='bg-eye';
+    const s=20+Math.random()*40;
+    eye.style.cssText=`width:${s}px;height:${s}px;left:${Math.random()*95}%;top:${Math.random()*90}%;animation-delay:${Math.random()*4}s;animation-duration:${3+Math.random()*3}s`;
+    bg.appendChild(eye);
+  }
+  // Slime drips
+  for (let i=0; i<8; i++) {
+    const slime=document.createElement('div');
+    slime.className='bg-slime';
+    slime.style.cssText=`left:${5+i*12+Math.random()*6}%;width:${8+Math.random()*18}px;animation-duration:${3+Math.random()*4}s;animation-delay:${Math.random()*5}s`;
+    bg.appendChild(slime);
+  }
+  // Floating bones
+  const boneEmojis=['🦴','💀','🕷️','🦇'];
+  for (let i=0; i<10; i++) {
+    const b=document.createElement('div');
+    b.className='bg-bone'; b.textContent=pick(boneEmojis);
+    b.style.cssText=`left:${Math.random()*95}%;top:${Math.random()*90}%;animation-duration:${8+Math.random()*8}s;animation-delay:${Math.random()*6}s`;
+    bg.appendChild(b);
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', buildAtmosphere);
+} else {
+  buildAtmosphere();
+}
+
+/* ════════════════════════════════════════════
+   PERSISTENCE
+════════════════════════════════════════════ */
+const SAVE_KEY = 'jakemonstermath_v1';
+
+// ─── Storage: window.name (works in Google Sites iframes) + fallbacks ───
+function _storeGet(key) {
+  try { var s=JSON.parse(window.name||'{}'); if (s[key]) return JSON.parse(s[key]); } catch(e) {}
+  try { var r=sessionStorage.getItem(key); if (r) return JSON.parse(r); } catch(e) {}
+  try { var r=localStorage.getItem(key);   if (r) return JSON.parse(r); } catch(e) {}
+  return null;
+}
+function _storeSet(key, val) {
+  var json = JSON.stringify(val);
+  try { var s={}; try{s=JSON.parse(window.name||'{}')||{};}catch(e){} s[key]=json; window.name=JSON.stringify(s); } catch(e) {}
+  try { sessionStorage.setItem(key, json); } catch(e) {}
+  try { localStorage.setItem(key, json);   } catch(e) {}
+}
+function _storeDel(key) {
+  try { var s={}; try{s=JSON.parse(window.name||'{}')||{};}catch(e){} delete s[key]; window.name=JSON.stringify(s); } catch(e) {}
+  try { sessionStorage.removeItem(key); } catch(e) {}
+  try { localStorage.removeItem(key);   } catch(e) {}
+}
+
+function save() {
+  try {
+    _storeSet(SAVE_KEY, {
+      mapScore:       STATE.mapScore,
+      lives:          STATE.lives,
+      totalPoints:    STATE.totalPoints,
+      streak:         STATE.streak,
+      currentDungeon: STATE.currentDungeon,
+      dungeons: STATE.dungeons.map(d=>({
+        unlocked:  d.unlocked,
+        completed: d.completed,
+        answered:  d.answered,
+        correct:   d.correct,
+        order:     d.order,
+        pos:       d.pos,
+      })),
+    });
+  } catch(e) {}
+}
+
+function loadSave() {
+  try {
+    const s = _storeGet(SAVE_KEY);
+    if (!s || !s.dungeons || s.dungeons.length!==3) return null;
+    return s;
+  } catch(e) { return null; }
+}
+
+function clearSave() { _storeDel(SAVE_KEY); }
+
+function applySnap(snap) {
+  STATE.mapScore       = snap.mapScore;
+  STATE.lives          = snap.lives;
+  STATE.totalPoints    = snap.totalPoints;
+  STATE.streak         = snap.streak || 0;
+  STATE.currentDungeon = snap.currentDungeon || 0;
+  snap.dungeons.forEach((sd,i)=>{
+    const d = STATE.dungeons[i];
+    d.unlocked  = sd.unlocked;
+    d.completed = sd.completed;
+    d.answered  = sd.answered;
+    d.correct   = sd.correct;
+    d.problems  = GENERATORS[i]();   // fresh random numbers
+    d.order     = Array.isArray(sd.order) && sd.order.length===TOTAL ? sd.order : shuffle(Array.from({length:TOTAL},(_,k)=>k));
+    d.pos       = sd.pos || 0;
+  });
+}
+
+/* ════════════════════════════════════════════
+   SCREENS
+════════════════════════════════════════════ */
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+/* ════════════════════════════════════════════
+   START
+════════════════════════════════════════════ */
+function startGame() {
+  STATE.dungeons.forEach((d,i)=>initQueue(d,GENERATORS[i]));
+  save();
+  updateMapUI();
+  showScreen('map-screen');
+}
+
+
+/* ════════════════════════════════════════════
+   RESUME CHECK — runs after DOM ready
+════════════════════════════════════════════ */
+function resumeGame() {
+  updateMapUI();
+  showScreen('map-screen');
+}
+
+function startOver() {
+  clearSave();
+  document.getElementById('resume-panel').style.display = 'none';
+  document.getElementById('start-btn').style.display = '';
+  Object.assign(STATE, {mapScore:189, lives:3, totalPoints:0, streak:0, currentDungeon:0});
+  STATE.dungeons.forEach((d, i) => { d.unlocked=i===0; d.completed=false; d.answered=0; d.correct=0; d.problems=[]; d.order=[]; d.pos=0; });
+}
+
+function checkResume() {
+  try {
+    const snap = loadSave();
+    if (!snap) return;
+    try { applySnap(snap); } catch(e) { clearSave(); return; }
+
+    const d       = STATE.dungeons[STATE.currentDungeon];
+    const acc     = d.answered > 0 ? Math.round(d.correct / d.answered * 100) : 0;
+    const pctDone = Math.round(d.answered / 250 * 100);
+
+    const detail = document.getElementById('resume-detail');
+    if (detail) {
+      detail.innerHTML =
+        d.emoji + ' <strong style="color:rgba(245,240,220,1)">' + d.name + '</strong>'
+      + ' &nbsp;·&nbsp; Q' + d.answered + ' / 250'
+      + (d.answered > 0 ? ' &nbsp;·&nbsp; ' + pctDone + '% done &nbsp;·&nbsp; ' + acc + '% correct' : '')
+      + '<br><span style="color:var(--yellow)">MAP Score: ' + snap.mapScore + '</span>';
+    }
+
+    const panel    = document.getElementById('resume-panel');
+    const startBtn = document.getElementById('start-btn');
+    if (panel)    panel.style.display = 'flex';
+    if (startBtn) startBtn.style.display = 'none';
+  } catch(e) { clearSave(); }
+}
+
+
+// Run after the DOM is fully parsed so querySelector never returns null
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', checkResume);
+} else {
+  checkResume();
+}
+
+/* ════════════════════════════════════════════
+   MAP UI
+════════════════════════════════════════════ */
+function updateMapUI() {
+  document.getElementById('hud-map').textContent = STATE.mapScore;
+  document.getElementById('map-val').textContent = STATE.mapScore;
+  updateLives();
+
+  STATE.dungeons.forEach((d,i)=>{
+    const card  = document.getElementById(`dcard-${i}`);
+    const bar   = document.getElementById(`dbar-${i}`);
+    const ptext = document.getElementById(`dptext-${i}`);
+    const acc   = d.answered>0 ? Math.round(d.correct/d.answered*100) : 0;
+
+    card.className='dungeon-card';
+    if (!d.unlocked) {
+      card.classList.add('locked');
+      ptext.textContent='🔒 Locked';
+    } else if (d.completed) {
+      card.classList.add('completed');
+      bar.style.width='100%';
+      ptext.textContent=`✅ Done! ${acc}% correct`;
+    } else {
+      card.classList.add(i===STATE.currentDungeon ? 'current' : 'available');
+      const pct=Math.round(d.answered/TOTAL*100);
+      bar.style.width=`${pct}%`;
+      ptext.textContent=d.answered>0 ? `${pct}% done · ${acc}% ✓` : '0% Done';
+    }
+  });
+
+  const pct=Math.max(0,Math.min(100,(STATE.mapScore-MAP_MIN)/(MAP_MAX-MAP_MIN)*100));
+  document.getElementById('map-bar').style.width=`${pct}%`;
+}
+
+function updateLives() {
+  document.getElementById('hud-lives').textContent =
+    '❤️'.repeat(Math.max(0,STATE.lives))+'🖤'.repeat(Math.max(0,3-STATE.lives));
+}
+
+/* ════════════════════════════════════════════
+   DUNGEON ENTER
+════════════════════════════════════════════ */
+function enterDungeon(idx) {
+  const d = STATE.dungeons[idx];
+  if (!d.unlocked) return;
+  STATE.currentDungeon = idx;
+  if (!d.problems.length) initQueue(d, GENERATORS[idx]);
+  showQuestion();
+  showScreen('question-screen');
+}
+
+/* ════════════════════════════════════════════
+   BUDDIES
+════════════════════════════════════════════ */
+const BUDDIES = [
+  {name:'Boo 👻',  face:'👻', msgs:["You can do it, Jake!","Spooktacular thinking!","Don't be scared — you've got this!","BOO-tifully done!"]},
+  {name:'Glorp 🧟',face:'🧟', msgs:["BRAAAINS… and math!","Zombie math attack!","You're un-dead-ly smart!","Keep shambling forward!"]},
+  {name:'Zap ⚡',  face:'🧙', msgs:["Magic math powers!","Cast the right answer!","Witchcraft? No — MATH!","Spellbinding answer!"]},
+];
+
+/* ════════════════════════════════════════════
+   SHOW QUESTION
+════════════════════════════════════════════ */
+function showQuestion() {
+  const d   = STATE.dungeons[STATE.currentDungeon];
+  const q   = currentQ(d);
+
+  // HUD
+  const dungeon = STATE.dungeons[STATE.currentDungeon];
+  document.getElementById('q-zone').textContent   = `${dungeon.emoji} ${dungeon.name}`;
+  document.getElementById('q-num').textContent    = `Question ${d.answered+1} of ${TOTAL}`;
+  document.getElementById('q-prog').style.width   = `${(d.answered/TOTAL)*100}%`;
+  document.getElementById('q-streak').textContent = `🔥 ${STATE.streak} streak`;
+  document.getElementById('q-pts').textContent    = `🪙 ${STATE.totalPoints} coins`;
+
+  // Buddy
+  const buddy = BUDDIES[d.answered % 3];
+  document.getElementById('buddy-face').textContent = buddy.face;
+  document.getElementById('buddy-name').textContent = buddy.name;
+  document.getElementById('buddy-msg').textContent  = buddy.msgs[d.answered % buddy.msgs.length];
+
+  // Badge
+  const badge = document.getElementById('q-badge');
+  badge.textContent = q.type==='word' ? '📖 Word Problem' : '🔢 Math';
+  badge.className   = `q-badge ${q.type==='word' ? 'badge-word' : 'badge-math'}`;
+  document.getElementById('q-text').textContent = q.question;
+  document.getElementById('q-hint').textContent = q.hint ? `💡 Hint: ${q.hint}` : '';
+
+  // Reset
+  document.getElementById('feedback').className = 'feedback';
+  document.getElementById('feedback').textContent = '';
+  document.getElementById('next-wrap').style.display = 'none';
+
+  // Answers
+  const area = document.getElementById('answer-area');
+  area.innerHTML = '';
+
+  if (q.choices && q.choices.length) {
+    const grid = document.createElement('div');
+    grid.className = 'choices-grid';
+    q.choices.forEach(c=>{
+      const btn = document.createElement('button');
+      btn.type='button'; btn.className='choice-btn';
+      btn.textContent = c;
+      btn.onclick = ()=>checkMC(c, q, btn, grid);
+      grid.appendChild(btn);
+    });
+    area.appendChild(grid);
+  } else {
+    const wrap = document.createElement('div');
+    wrap.className = 'free-wrap';
+    const inp = document.createElement('input');
+    inp.className='free-input'; inp.id='free-inp'; inp.type='text';
+    inp.placeholder='Type your answer…';
+    inp.setAttribute('autocomplete','off'); inp.setAttribute('autocorrect','off');
+    inp.setAttribute('autocapitalize','none'); inp.setAttribute('spellcheck','false');
+    inp.setAttribute('inputmode', q.type==='word' ? 'text' : 'decimal');
+    inp.addEventListener('keydown', e=>{ if(e.key==='Enter') checkFree(q); });
+    const btn = document.createElement('button');
+    btn.type='button'; btn.className='btn-check'; btn.textContent='Check!';
+    btn.onclick=()=>checkFree(q);
+    wrap.appendChild(inp); wrap.appendChild(btn);
+    area.appendChild(wrap);
+    const isTouch=('ontouchstart' in window)||(navigator.maxTouchPoints>0);
+    if (!isTouch) setTimeout(()=>inp.focus(),100);
+  }
+}
+
+function checkMC(chosen, q, btn, grid) {
+  grid.querySelectorAll('.choice-btn').forEach(b=>b.disabled=true);
+  const ok = String(chosen).toLowerCase()===String(q.answer).toLowerCase() ||
+             (typeof chosen==='number' && Math.abs(chosen-q.answer)<0.05);
+  btn.classList.add(ok?'correct-ans':'wrong-ans');
+  if (!ok) grid.querySelectorAll('.choice-btn').forEach(b=>{
+    if(String(b.textContent).toLowerCase()===String(q.answer).toLowerCase()) b.classList.add('correct-ans');
+  });
+  handleResult(ok, q);
+}
+
+function checkFree(q) {
+  const inp=document.getElementById('free-inp');
+  if (!inp||inp.value.trim()==='') return;
+  inp.disabled=true;
+  const val=inp.value.trim();
+  const ua = isNaN(val) ? val.toLowerCase() : Math.round(parseFloat(val)*100)/100;
+  const ca = typeof q.answer==='string' ? q.answer.toLowerCase() : Math.round(q.answer*100)/100;
+  const ok = String(ua)===String(ca)||(typeof ua==='number'&&typeof ca==='number'&&Math.abs(ua-ca)<0.05);
+  inp.style.borderColor=ok?'var(--slime)':'var(--red)';
+  handleResult(ok, q);
+}
+
+function handleResult(ok, q) {
+  const d  = STATE.dungeons[STATE.currentDungeon];
+  d.answered++; advQ(d);
+
+  const fb = document.getElementById('feedback');
+  if (ok) {
+    d.correct++;
+    STATE.streak++;
+    STATE.totalPoints += 10+(STATE.streak>=5?5:0)+(STATE.streak>=10?5:0);
+    if (d.answered%5===0) STATE.mapScore=Math.min(MAP_MAX,STATE.mapScore+1);
+    const msgs=['🎉 Monster tamed!','⭐ AMAZING, Jake!','🔥 You\'re on fire!','💀 Skull-crunchingly good!','🧟 BRAINY answer!','🐉 Dragon-slayer!'];
+    fb.textContent=msgs[Math.floor(Math.random()*msgs.length)]+(STATE.streak>=5?` 🔥 ${STATE.streak} STREAK BONUS!`:'');
+    fb.className='feedback show ok';
+  } else {
+    STATE.streak=0;
+    STATE.lives=Math.max(0,STATE.lives-1);
+    updateLives();
+    fb.textContent=`Not quite! The answer is ${q.answer}. You'll get the next one! 💪`;
+    fb.className='feedback show bad';
+  }
+
+  document.getElementById('q-streak').textContent=`🔥 ${STATE.streak} streak`;
+  document.getElementById('q-pts').textContent=`🪙 ${STATE.totalPoints} coins`;
+
+  if (d.answered>=TOTAL) {
+    save(); setTimeout(()=>dungeonEnd(),1300);
+  } else {
+    if (d.answered%50===0&&STATE.lives<3) { STATE.lives=Math.min(3,STATE.lives+1); updateLives(); }
+    document.getElementById('next-wrap').style.display='block';
+    save();
+  }
+}
+
+function nextQuestion() { showQuestion(); }
+
+/* ════════════════════════════════════════════
+   DUNGEON END
+════════════════════════════════════════════ */
+function dungeonEnd() {
+  const d      = STATE.dungeons[STATE.currentDungeon];
+  const acc    = d.answered>0 ? d.correct/d.answered : 0;
+  const passed = acc>=PASS;
+
+  const emojis  = ['🧟','🧙','🐉'];
+  const titles  = ['Zombie Swamp Cleared!','Witch\'s Tower Conquered!','Dragon\'s Lair Defeated!'];
+  const descs   = [
+    passed ? `Incredible! You got 90%+ and unlocked the Witch\'s Tower! 🧙` : `Aim for 90% to unlock the next dungeon! You can do it, Jake!`,
+    passed ? `Wow! 90%+ — the Dragon\'s Lair is now open! 🐉` : `Get to 90% to unlock the Dragon\'s Lair!`,
+    `You defeated ALL three dungeons! Jake is the ULTIMATE Monster Tamer! 🏆`,
+  ];
+
+  document.getElementById('lu-emoji').textContent = passed ? emojis[STATE.currentDungeon] : '💪';
+  document.getElementById('lu-title').textContent = passed ? titles[STATE.currentDungeon] : `Keep Fighting, Jake!`;
+  document.getElementById('lu-desc').textContent  = descs[STATE.currentDungeon];
+  document.getElementById('lu-correct').textContent = d.correct;
+  document.getElementById('lu-acc').textContent     = `${Math.round(acc*100)}%`;
+
+  const gain = Math.round((d.correct/TOTAL)*8);
+  STATE.mapScore = Math.min(MAP_MAX, STATE.mapScore+gain);
+  document.getElementById('lu-gain').textContent = `+${gain}`;
+
+  if (passed) {
+    d.completed=true;
+    if (STATE.currentDungeon<2) {
+      STATE.dungeons[STATE.currentDungeon+1].unlocked=true;
+      document.getElementById('lu-btn').textContent=`Enter ${STATE.dungeons[STATE.currentDungeon+1].name} ⚔️`;
+    } else {
+      document.getElementById('lu-btn').textContent='Claim the Trophy! 🏆';
+    }
+    save(); confetti();
+  } else {
+    d.answered=0; d.correct=0;
+    initQueue(d, GENERATORS[STATE.currentDungeon]);
+    document.getElementById('lu-btn').textContent='Try Again! 💪';
+    save();
+  }
+  showScreen('levelup-screen');
+}
+
+function afterLevelUp() {
+  const d = STATE.dungeons[STATE.currentDungeon];
+  if (d.completed && STATE.currentDungeon===2) {
+    clearSave();
+    document.getElementById('final-score').textContent = STATE.mapScore;
+    confetti(); confetti();
+    showScreen('win-screen');
+    return;
+  }
+  if (d.completed && STATE.currentDungeon<2) STATE.currentDungeon++;
+  save(); updateMapUI(); showScreen('map-screen');
+}
+
+function playAgain() {
+  clearSave();
+  Object.assign(STATE,{mapScore:189,lives:3,totalPoints:0,streak:0,currentDungeon:0});
+  STATE.dungeons.forEach((d,i)=>{ d.unlocked=i===0; d.completed=false; d.answered=0; d.correct=0; initQueue(d,GENERATORS[i]); });
+  updateMapUI(); showScreen('map-screen');
+}
+
+/* ════════════════════════════════════════════
+   CONFETTI
+════════════════════════════════════════════ */
+function confetti() {
+  const cols=['#a8e63d','#ffe135','#c362ff','#00e5c8','#ff7b00','#e8233a','#4caf22'];
+  for (let i=0;i<90;i++) {
+    const el=document.createElement('div'); el.className='confetti-piece';
+    const s=7+Math.random()*9;
+    el.style.cssText=`left:${Math.random()*100}vw;width:${s}px;height:${s}px;background:${pick(cols)};border-radius:${Math.random()>0.5?'50%':'3px'};animation-duration:${1.5+Math.random()*2.5}s;animation-delay:${Math.random()*0.8}s`;
+    document.body.appendChild(el);
+    setTimeout(()=>el.remove(),4500);
+  }
+}
+
+/* ════════════════════════════════════════════
+   iPAD / iOS
+════════════════════════════════════════════ */
+function setupiPad() {
+  document.body.style.touchAction='manipulation';
+  document.addEventListener('touchmove',e=>{
+    if(e.target===document.body||e.target===document.getElementById('app')) e.preventDefault();
+  },{passive:false});
+  document.addEventListener('touchstart',e=>{
+    const b=e.target.closest('button,.dungeon-card:not(.locked),.choice-btn');
+    if(b) b.style.opacity='0.80';
+  },{passive:true});
+  document.addEventListener('touchend',e=>{
+    const b=e.target.closest('button,.dungeon-card:not(.locked),.choice-btn');
+    if(b) setTimeout(()=>{b.style.opacity='';},150);
+  },{passive:true});
+  window.addEventListener('resize',()=>{
+    const a=document.querySelector('.screen.active');
+    if(a){const f=a.querySelector('input:focus');if(f)setTimeout(()=>f.scrollIntoView({behavior:'smooth',block:'center'}),100);}
+  });
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', setupiPad);
+} else {
+  setupiPad();
+}
+</script>
+</body>
+</html>
