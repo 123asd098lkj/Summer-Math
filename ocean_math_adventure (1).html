@@ -1,0 +1,1453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Ocean Math Adventure</title>
+<link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;600;700&family=Pacifico&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════
+   DESIGN TOKENS
+═══════════════════════════════════════ */
+:root {
+  --abyss:    #020c18;
+  --deep:     #041e3a;
+  --ocean:    #063360;
+  --reef:     #0a4f8a;
+  --foam:     #e8f4f8;
+  --pearl:    #f0e6ff;
+  --coral:    #ff6b8a;
+  --coral2:   #ff4d6d;
+  --aqua:     #00e5ff;
+  --teal:     #00c4b4;
+  --mint:     #a8ffec;
+  --violet:   #b44fff;
+  --lavender: #d4a8ff;
+  --gold:     #ffd166;
+  --orange:   #ff9a3c;
+  --card:     rgba(4,30,58,0.75);
+  --border:   rgba(0,229,255,0.18);
+  --font-h:   'Pacifico', cursive;
+  --font-b:   'Comfortaa', sans-serif;
+}
+
+/* ═══════════════════════════════════════
+   RESET
+═══════════════════════════════════════ */
+*, *::before, *::after {
+  box-sizing: border-box; margin: 0; padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+html { min-height: -webkit-fill-available; }
+body {
+  font-family: var(--font-b);
+  background: var(--abyss);
+  color: var(--foam);
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+  overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
+  overscroll-behavior: none;
+}
+
+/* ═══════════════════════════════════════
+   OCEAN BACKGROUND
+═══════════════════════════════════════ */
+#ocean-bg {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden;
+  background: linear-gradient(180deg,
+    #020c18 0%, #041e3a 20%, #063360 50%, #0a4f8a 80%, #0d6eaa 100%);
+}
+.caustic {
+  position: absolute; border-radius: 50%;
+  background: radial-gradient(circle, rgba(0,229,255,0.08) 0%, transparent 70%);
+  animation: causticDrift ease-in-out infinite alternate;
+}
+@keyframes causticDrift {
+  0%   { transform: scale(1)   translate(0px, 0px); }
+  100% { transform: scale(1.3) translate(15px, -20px); }
+}
+.bubble {
+  position: absolute; border-radius: 50%;
+  border: 1px solid rgba(0,229,255,0.3);
+  background: rgba(0,229,255,0.04);
+  animation: bubbleRise linear infinite;
+}
+@keyframes bubbleRise {
+  0%   { transform: translateY(0) translateX(0);   opacity: 0.7; }
+  50%  { transform: translateY(-45vh) translateX(10px); opacity: 0.4; }
+  100% { transform: translateY(-100vh) translateX(-5px); opacity: 0; }
+}
+.ray {
+  position: absolute; top: 0; width: 3px;
+  background: linear-gradient(180deg, rgba(0,229,255,0) 0%, rgba(0,229,255,0.1) 40%, rgba(0,229,255,0) 100%);
+  animation: raySway ease-in-out infinite alternate;
+  transform-origin: top center;
+}
+@keyframes raySway {
+  0%   { transform: rotate(-6deg) scaleX(1); }
+  100% { transform: rotate(6deg)  scaleX(2); }
+}
+.seaweed {
+  position: absolute; bottom: 0;
+  background: linear-gradient(180deg, #00a86b, #007a4d);
+  border-radius: 6px 6px 2px 2px;
+  transform-origin: bottom center;
+  animation: seaweedSway ease-in-out infinite alternate;
+}
+@keyframes seaweedSway {
+  0%   { transform: rotate(-12deg); }
+  100% { transform: rotate(12deg); }
+}
+.fish-bg {
+  position: absolute; font-size: 1.4rem; opacity: 0.12;
+  animation: fishSwim linear infinite;
+}
+@keyframes fishSwim {
+  0%   { transform: translateX(0) scaleX(1); }
+  49%  { transform: translateX(calc(100vw + 60px)) scaleX(1); opacity: 0.12; }
+  50%  { transform: translateX(calc(100vw + 60px)) scaleX(-1); opacity: 0; }
+  51%  { transform: translateX(calc(100vw + 60px)) scaleX(-1); opacity: 0.12; }
+  100% { transform: translateX(0) scaleX(-1); }
+}
+
+/* ═══════════════════════════════════════
+   APP SHELL
+═══════════════════════════════════════ */
+#app { position: relative; z-index: 1; min-height: 100vh; }
+
+.screen {
+  display: none;
+  min-height: 100vh; min-height: -webkit-fill-available;
+  padding: 20px;
+  padding-top: max(20px, env(safe-area-inset-top));
+  padding-bottom: max(24px, env(safe-area-inset-bottom));
+  flex-direction: column; align-items: center; justify-content: center;
+  gap: 16px;
+  overflow-y: auto; -webkit-overflow-scrolling: touch;
+}
+.screen.active { display: flex; }
+
+/* ═══════════════════════════════════════
+   INTRO SCREEN
+═══════════════════════════════════════ */
+#intro-screen {
+  text-align: center;
+  background: radial-gradient(ellipse at 50% 30%, rgba(0,196,180,0.12) 0%, transparent 65%);
+}
+
+.hero-creature {
+  font-size: 7rem; display: block; line-height: 1;
+  animation: heroFloat 2s ease-in-out infinite alternate;
+  filter: drop-shadow(0 0 24px rgba(0,229,255,0.6));
+}
+@keyframes heroFloat {
+  0%   { transform: translateY(0)    rotate(-4deg) scale(1); }
+  100% { transform: translateY(-16px) rotate(4deg)  scale(1.04); }
+}
+
+.game-title {
+  font-family: var(--font-h);
+  font-size: clamp(2.4rem, 8vw, 5rem);
+  line-height: 1.15;
+  background: linear-gradient(135deg, var(--aqua) 0%, var(--lavender) 50%, var(--coral) 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  filter: drop-shadow(0 2px 12px rgba(0,229,255,0.3));
+  animation: titleShimmer 3s ease-in-out infinite alternate;
+}
+@keyframes titleShimmer {
+  0%   { filter: drop-shadow(0 2px 8px  rgba(0,229,255,0.25)); }
+  100% { filter: drop-shadow(0 2px 28px rgba(212,168,255,0.55)); }
+}
+
+.game-sub {
+  font-family: var(--font-h); font-size: 1.1rem;
+  color: var(--teal); letter-spacing: 1px;
+}
+
+.intro-card {
+  max-width: 460px; background: var(--card); border: 1.5px solid var(--border);
+  border-radius: 24px; padding: 20px 26px;
+  font-size: 1.05rem; line-height: 1.8; color: rgba(232,244,248,0.88);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+.intro-card strong { color: var(--aqua); }
+
+/* ═══════════════════════════════════════
+   BUTTONS
+═══════════════════════════════════════ */
+.btn {
+  font-family: var(--font-b); font-weight: 700; font-size: 1.2rem;
+  padding: 14px 36px; border: none; border-radius: 50px;
+  cursor: pointer; transition: all 0.18s; letter-spacing: 0.5px;
+  touch-action: manipulation; -webkit-user-select: none; user-select: none;
+  min-height: 52px; -webkit-appearance: none; appearance: none;
+  position: relative; overflow: hidden;
+}
+.btn:active { transform: scale(0.93) !important; }
+
+.btn-dive {
+  background: linear-gradient(135deg, var(--teal), var(--aqua));
+  color: var(--abyss); font-size: 1.4rem; padding: 18px 52px;
+  box-shadow: 0 6px 0 #007a6e, 0 10px 28px rgba(0,196,180,0.45);
+}
+.btn-dive:hover { transform: translateY(-3px); box-shadow: 0 9px 0 #007a6e, 0 14px 34px rgba(0,229,255,0.5); }
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--violet), var(--coral));
+  color: white;
+  box-shadow: 0 5px 0 #7a1fb5, 0 8px 20px rgba(180,79,255,0.4);
+}
+.btn-primary:hover { transform: translateY(-2px); }
+
+.btn-ghost {
+  background: rgba(255,255,255,0.07); color: var(--foam);
+  border: 1.5px solid rgba(255,255,255,0.2); font-size: 1rem; padding: 12px 26px;
+}
+.btn-wide { width: 100%; max-width: 520px; }
+
+/* ═══════════════════════════════════════
+   HUD
+═══════════════════════════════════════ */
+.hud {
+  width: 100%; max-width: 700px;
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 18px; padding: 10px 20px;
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+.hud-name  { font-family: var(--font-h); font-size: 1rem; color: var(--gold); }
+.hud-score { font-size: 0.9rem; font-weight: 700; color: var(--aqua); }
+.hud-lives { font-size: 1.2rem; letter-spacing: 2px; }
+
+/* ═══════════════════════════════════════
+   MAP SCREEN
+═══════════════════════════════════════ */
+#map-screen { justify-content: flex-start; }
+
+.map-title {
+  font-family: var(--font-h);
+  font-size: clamp(1.4rem, 5vw, 2.5rem);
+  background: linear-gradient(135deg, var(--aqua), var(--mint));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  text-align: center;
+}
+
+.zone-grid {
+  display: flex; gap: 16px; flex-wrap: wrap;
+  justify-content: center; max-width: 740px; width: 100%;
+}
+
+.zone-card {
+  width: 204px; border-radius: 24px; padding: 22px 16px;
+  text-align: center; cursor: pointer;
+  transition: transform 0.22s, box-shadow 0.22s;
+  border: 2px solid transparent; position: relative; overflow: hidden;
+  touch-action: manipulation; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+}
+.zone-card.locked   { opacity: 0.35; cursor: not-allowed; background: rgba(4,30,58,0.4); border-color: rgba(0,229,255,0.06); }
+.zone-card.available{ background: var(--card); border-color: var(--border); animation: zonePulse 2.5s ease-in-out infinite alternate; }
+.zone-card.completed{ background: rgba(0,196,180,0.14); border-color: var(--teal); }
+.zone-card.current  { background: rgba(180,79,255,0.14); border-color: var(--violet); animation: zoneCurrent 1.8s ease-in-out infinite alternate; }
+@keyframes zonePulse   { from{box-shadow:0 0 10px rgba(0,229,255,0.12)} to{box-shadow:0 0 28px rgba(0,229,255,0.4)} }
+@keyframes zoneCurrent { from{box-shadow:0 0 14px rgba(180,79,255,0.25)} to{box-shadow:0 0 42px rgba(180,79,255,0.65)} }
+.zone-card:not(.locked):hover { transform: translateY(-6px) scale(1.03); }
+
+.zone-icon  { font-size: 3.8rem; display: block; margin-bottom: 8px; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.4)); }
+.zone-name  { font-family: var(--font-h); font-size: 1.1rem; margin-bottom: 3px; }
+.zone-grade { font-size: 0.78rem; opacity: 0.58; margin-bottom: 10px; }
+.bar-wrap   { background: rgba(255,255,255,0.07); border-radius: 8px; height: 8px; overflow: hidden; margin-bottom: 4px; }
+.bar-fill   { height: 100%; border-radius: 8px; transition: width 0.55s ease; }
+.bar-text   { font-size: 0.75rem; font-weight: 700; color: var(--aqua); }
+
+.depth-meter {
+  width: 100%; max-width: 500px;
+  background: var(--card); border: 1.5px solid var(--border);
+  border-radius: 20px; padding: 14px 24px; text-align: center;
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+.depth-lbl    { font-size: 0.82rem; color: rgba(232,244,248,0.45); margin-bottom: 3px; }
+.depth-val    { font-family: var(--font-h); font-size: 2.2rem; color: var(--gold); display: block; }
+.depth-outer  { background: rgba(255,255,255,0.06); border-radius: 10px; height: 13px; overflow: hidden; margin-top: 9px; }
+.depth-inner  { height: 100%; border-radius: 10px; background: linear-gradient(90deg, var(--violet), var(--aqua), var(--gold)); transition: width 0.8s ease; }
+.depth-range  { display: flex; justify-content: space-between; font-size: 0.7rem; color: rgba(232,244,248,0.35); margin-top: 4px; }
+
+/* ═══════════════════════════════════════
+   QUESTION SCREEN
+═══════════════════════════════════════ */
+#question-screen { justify-content: flex-start; gap: 11px; }
+
+.q-top {
+  width: 100%; max-width: 700px;
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px;
+}
+.q-zone-tag { font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: var(--aqua); }
+.q-num      { font-size: 0.7rem; color: rgba(232,244,248,0.4); }
+.q-streak   { font-size: 0.98rem; font-weight: 700; color: var(--orange); }
+.q-pts      { font-size: 0.92rem; font-weight: 700; color: var(--gold); }
+
+.q-prog-outer { width: 100%; max-width: 700px; background: rgba(255,255,255,0.06); border-radius: 8px; height: 7px; overflow: hidden; }
+.q-prog-inner { height: 100%; border-radius: 8px; background: linear-gradient(90deg, var(--violet), var(--teal)); transition: width 0.4s ease; }
+
+/* Buddy */
+.buddy {
+  display: flex; align-items: flex-start; gap: 12px;
+  background: rgba(0,196,180,0.09); border: 1.5px solid rgba(0,196,180,0.22);
+  border-radius: 18px; padding: 11px 15px; width: 100%; max-width: 700px;
+}
+.buddy-face { font-size: 2.2rem; flex-shrink: 0; animation: buddyWave 3s ease-in-out infinite; }
+@keyframes buddyWave { 0%,100%{transform:rotate(-5deg)} 50%{transform:rotate(5deg)} }
+.buddy-name { font-family: var(--font-h); font-size: 0.88rem; color: var(--teal); margin-bottom: 2px; }
+.buddy-msg  { font-size: 0.86rem; line-height: 1.5; color: rgba(232,244,248,0.82); }
+
+/* Question card */
+.q-card {
+  background: var(--card); border: 1.5px solid var(--border);
+  border-radius: 24px; padding: 22px 24px;
+  width: 100%; max-width: 700px;
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+.q-badge {
+  display: inline-block; padding: 4px 13px; border-radius: 20px;
+  font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+  margin-bottom: 11px;
+}
+.badge-math { background: rgba(0,229,255,0.12); color: var(--aqua); border: 1px solid rgba(0,229,255,0.4); }
+.badge-word { background: rgba(255,107,138,0.12); color: var(--coral); border: 1px solid rgba(255,107,138,0.4); }
+
+.q-text { font-size: clamp(1.05rem, 3.2vw, 1.32rem); font-weight: 600; line-height: 1.65; margin-bottom: 6px; }
+.q-hint { font-size: 0.82rem; color: rgba(232,244,248,0.4); font-style: italic; }
+
+/* Choices */
+.choices-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; max-width: 700px; }
+.choice-btn {
+  background: rgba(4,30,58,0.8); border: 2px solid rgba(0,229,255,0.16);
+  border-radius: 14px; padding: 15px 12px;
+  color: var(--foam); font-family: var(--font-b); font-size: 1rem; font-weight: 600;
+  cursor: pointer; transition: all 0.18s; text-align: center;
+  touch-action: manipulation; -webkit-user-select: none; user-select: none;
+  min-height: 60px; -webkit-appearance: none; appearance: none;
+  display: flex; align-items: center; justify-content: center;
+}
+.choice-btn:hover:not(:disabled) { background: rgba(0,196,180,0.15); border-color: var(--teal); transform: scale(1.02); }
+.choice-btn.correct-ans { background: rgba(0,196,180,0.28); border-color: var(--teal); animation: popGood 0.4s ease; }
+.choice-btn.wrong-ans   { background: rgba(255,107,138,0.22); border-color: var(--coral2); animation: shakeNo 0.38s ease; }
+@keyframes popGood { 0%,100%{transform:scale(1)} 50%{transform:scale(1.07)} }
+@keyframes shakeNo { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-8px)} 75%{transform:translateX(8px)} }
+
+/* Free answer */
+.free-wrap  { display: flex; gap: 10px; width: 100%; max-width: 700px; }
+.free-input {
+  flex: 1; padding: 15px 18px; font-size: 1.1rem; font-family: var(--font-b); font-weight: 600;
+  border: 2px solid rgba(0,229,255,0.25); background: rgba(4,30,58,0.7);
+  color: var(--foam); border-radius: 14px; outline: none; text-align: center;
+  transition: border-color 0.25s;
+  -webkit-appearance: none; appearance: none; min-height: 54px;
+}
+.free-input:focus { border-color: var(--aqua); }
+.btn-check {
+  background: linear-gradient(135deg, var(--violet), var(--aqua));
+  color: white; border: none; border-radius: 14px;
+  padding: 0 22px; font-family: var(--font-b); font-weight: 700; font-size: 1rem;
+  cursor: pointer; transition: transform 0.18s; min-height: 54px;
+  touch-action: manipulation; -webkit-appearance: none;
+}
+.btn-check:hover { transform: scale(1.05); }
+
+/* Feedback */
+.feedback {
+  width: 100%; max-width: 700px; padding: 12px 18px;
+  border-radius: 16px; font-weight: 700; font-size: 1.1rem;
+  text-align: center; display: none;
+}
+.feedback.show { display: block; animation: fbPop 0.28s ease; }
+@keyframes fbPop { from{transform:scale(0.85);opacity:0} to{transform:scale(1);opacity:1} }
+.feedback.ok  { background: rgba(0,196,180,0.2);  border: 2px solid var(--teal);  color: #a8ffe8; }
+.feedback.bad { background: rgba(255,77,109,0.16); border: 2px solid var(--coral2); color: #ffb3c2; }
+
+.next-wrap { width: 100%; max-width: 700px; }
+
+/* ═══════════════════════════════════════
+   LEVEL-UP SCREEN
+═══════════════════════════════════════ */
+#levelup-screen {
+  text-align: center; gap: 20px;
+  background: radial-gradient(ellipse at center, rgba(0,196,180,0.18) 0%, transparent 65%);
+}
+.lu-icon  { font-size: 6rem; animation: luPop 0.7s ease; }
+@keyframes luPop { from{transform:scale(0.2) rotate(-25deg);opacity:0} to{transform:scale(1) rotate(0);opacity:1} }
+.lu-title {
+  font-family: var(--font-h);
+  font-size: clamp(1.8rem, 6vw, 3.2rem);
+  background: linear-gradient(135deg, var(--gold), var(--aqua), var(--lavender));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.lu-desc  { font-size: 1.04rem; max-width: 400px; line-height: 1.75; color: rgba(232,244,248,0.85); }
+.lu-stats {
+  display: flex; gap: 26px; flex-wrap: wrap; justify-content: center;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 20px; padding: 18px 28px;
+  backdrop-filter: blur(8px);
+}
+.stat-v { font-family: var(--font-h); font-size: 2rem; color: var(--aqua); display: block; }
+.stat-l { font-size: 0.73rem; text-transform: uppercase; letter-spacing: 1px; color: rgba(232,244,248,0.4); }
+
+/* ═══════════════════════════════════════
+   WIN SCREEN
+═══════════════════════════════════════ */
+#win-screen {
+  text-align: center; gap: 22px;
+  background: radial-gradient(ellipse at center, rgba(180,79,255,0.18) 0%, transparent 65%);
+}
+.win-title {
+  font-family: var(--font-h);
+  font-size: clamp(2rem, 8vw, 4.5rem);
+  background: linear-gradient(135deg, var(--aqua), var(--lavender), var(--coral), var(--gold));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  animation: titleShimmer 1.5s ease-in-out infinite alternate;
+}
+.trophy-box {
+  background: var(--card); border: 2px solid var(--gold);
+  border-radius: 22px; padding: 26px 42px; text-align: center;
+  box-shadow: 0 0 42px rgba(255,209,102,0.18);
+}
+.trophy-score { font-family: var(--font-h); font-size: 4rem; color: var(--gold); display: block; }
+.trophy-lbl   { font-size: 0.9rem; color: rgba(232,244,248,0.45); }
+
+/* ═══════════════════════════════════════
+   CONFETTI
+═══════════════════════════════════════ */
+.confetti-piece { position: fixed; pointer-events: none; z-index: 999; animation: cFall linear forwards; }
+@keyframes cFall {
+  0%   { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(110vh)  rotate(720deg); opacity: 0; }
+}
+
+/* ═══════════════════════════════════════
+   RESPONSIVE
+═══════════════════════════════════════ */
+@media (min-width: 600px) and (max-width: 1024px) {
+  .choice-btn { min-height: 68px; font-size: 1.05rem; }
+  .btn { min-height: 54px; }
+  .zone-card { width: 200px; }
+}
+@media (min-width: 900px) and (max-height: 720px) {
+  .hero-creature { font-size: 4.5rem; }
+  .game-title    { font-size: 3rem; }
+  #intro-screen  { gap: 12px; }
+  #question-screen { gap: 8px; }
+  .q-card { padding: 16px 20px; }
+}
+@media (max-width: 480px) {
+  .choices-grid { grid-template-columns: 1fr; }
+  .zone-card    { width: 155px; padding: 16px 12px; }
+  .lu-stats     { flex-direction: column; gap: 14px; }
+}
+</style>
+</head>
+<body>
+
+<div id="ocean-bg"></div>
+
+<div id="app">
+
+<!-- ══════════ INTRO ══════════ -->
+<div id="intro-screen" class="screen active">
+  <span class="hero-creature">🐠</span>
+  <div class="game-title">Ocean Math<br>Adventure</div>
+  <div class="game-sub">✨ Nora's Ocean Academy ✨</div>
+  <div class="intro-card">
+    Hey <strong>Nora</strong>! 🌊 Welcome to the <strong>Ocean Math Academy</strong>!<br><br>
+    Three magical underwater worlds are waiting — the <strong>Coral Kingdom</strong>, the <strong>Midnight Trench</strong>, and the <strong>Crystal Depths</strong>. Each is packed with math mysteries to solve!<br><br>
+    Earn <strong>sea pearls</strong>, build your streak, and become the <strong>Ocean Champion</strong>! 🏆<br><br>
+    Your progress is <strong>saved automatically</strong> so you can pick up right where you left off. 💾
+  </div>
+
+  <!-- Resume panel — shown only when a save exists -->
+  <div id="resume-panel" style="display:none;flex-direction:column;align-items:center;gap:12px;width:100%;max-width:440px">
+    <div style="background:rgba(0,196,180,0.1);border:1.5px solid rgba(0,196,180,0.3);border-radius:18px;padding:16px 22px;text-align:center;width:100%">
+      <div style="font-family:var(--font-h);font-size:1.1rem;color:var(--aqua);margin-bottom:6px">👋 Welcome back, Nora!</div>
+      <div id="resume-detail" style="font-size:0.9rem;color:rgba(232,244,248,0.8);line-height:1.7"></div>
+    </div>
+    <button type="button" class="btn btn-dive" style="font-size:1.25rem;padding:16px 44px" onclick="resumeGame()">▶ Continue Diving</button>
+    <button type="button" class="btn btn-ghost" onclick="startOver()">🔄 Start Over</button>
+  </div>
+
+  <button type="button" class="btn btn-dive" id="start-btn" onclick="startGame()">🌊 Start Adventure!</button>
+</div>
+
+<!-- ══════════ MAP ══════════ -->
+<div id="map-screen" class="screen">
+  <div class="hud">
+    <div class="hud-name">🐚 Nora</div>
+    <div class="hud-score">MAP: <span id="hud-map">238</span></div>
+    <div class="hud-lives" id="hud-lives">💙💙💙</div>
+  </div>
+
+  <div class="map-title">🗺️ Choose Your Zone</div>
+
+  <div class="zone-grid">
+    <div class="zone-card" id="zcard-0" onclick="enterZone(0)">
+      <span class="zone-icon">🐡</span>
+      <div class="zone-name" style="color:var(--aqua)">Coral Kingdom</div>
+      <div class="zone-grade">6th Grade · MAP 238–252</div>
+      <div class="bar-wrap"><div class="bar-fill" id="zbar-0" style="width:0%;background:linear-gradient(90deg,var(--aqua),var(--teal))"></div></div>
+      <div class="bar-text" id="zptext-0">0% Complete</div>
+    </div>
+    <div class="zone-card locked" id="zcard-1" onclick="enterZone(1)">
+      <span class="zone-icon">🦑</span>
+      <div class="zone-name" style="color:var(--lavender)">Midnight Trench</div>
+      <div class="zone-grade">7th Grade · MAP 252–263</div>
+      <div class="bar-wrap"><div class="bar-fill" id="zbar-1" style="width:0%;background:linear-gradient(90deg,var(--lavender),var(--violet))"></div></div>
+      <div class="bar-text" id="zptext-1">🔒 Locked</div>
+    </div>
+    <div class="zone-card locked" id="zcard-2" onclick="enterZone(2)">
+      <span class="zone-icon">🦈</span>
+      <div class="zone-name" style="color:var(--gold)">Crystal Depths</div>
+      <div class="zone-grade">8th Grade · MAP 263–270</div>
+      <div class="bar-wrap"><div class="bar-fill" id="zbar-2" style="width:0%;background:linear-gradient(90deg,var(--gold),var(--orange))"></div></div>
+      <div class="bar-text" id="zptext-2">🔒 Locked</div>
+    </div>
+  </div>
+
+  <div class="depth-meter">
+    <div class="depth-lbl">Your Ocean Power Level</div>
+    <span class="depth-val" id="map-val">238</span>
+    <div class="depth-outer"><div class="depth-inner" id="map-bar" style="width:0%"></div></div>
+    <div class="depth-range"><span>238 (Surface)</span><span>270 (Legend 🏆)</span></div>
+  </div>
+</div>
+
+<!-- ══════════ QUESTION ══════════ -->
+<div id="question-screen" class="screen">
+  <div class="q-top">
+    <div>
+      <div class="q-zone-tag" id="q-zone">🐡 Coral Kingdom</div>
+      <div class="q-num" id="q-num">Question 1 of 250</div>
+    </div>
+    <div class="q-streak" id="q-streak">🔥 0 streak</div>
+    <div class="q-pts" id="q-pts">🪸 0 pearls</div>
+  </div>
+
+  <div class="q-prog-outer"><div class="q-prog-inner" id="q-prog" style="width:0%"></div></div>
+
+  <div class="buddy">
+    <div class="buddy-face" id="buddy-face">🐠</div>
+    <div>
+      <div class="buddy-name" id="buddy-name">Marina</div>
+      <div class="buddy-msg"  id="buddy-msg">You can do this!</div>
+    </div>
+  </div>
+
+  <div class="q-card">
+    <span class="q-badge" id="q-badge">Math</span>
+    <div class="q-text"   id="q-text">Loading…</div>
+    <div class="q-hint"   id="q-hint"></div>
+  </div>
+
+  <div id="answer-area"></div>
+  <div class="feedback" id="feedback"></div>
+  <div class="next-wrap" id="next-wrap" style="display:none">
+    <button type="button" class="btn btn-primary btn-wide" onclick="nextQuestion()">Next Question ➡️</button>
+  </div>
+</div>
+
+<!-- ══════════ LEVEL UP ══════════ -->
+<div id="levelup-screen" class="screen">
+  <div class="lu-icon"  id="lu-icon">🎉</div>
+  <div class="lu-title" id="lu-title">Zone Cleared!</div>
+  <p   class="lu-desc"  id="lu-desc">Amazing work!</p>
+  <div class="lu-stats">
+    <div><span class="stat-v" id="lu-correct">0</span><div class="stat-l">Correct</div></div>
+    <div><span class="stat-v" id="lu-acc">0%</span><div class="stat-l">Accuracy</div></div>
+    <div><span class="stat-v" id="lu-gain">+0</span><div class="stat-l">MAP Pts</div></div>
+  </div>
+  <button type="button" class="btn btn-primary" id="lu-btn" onclick="afterLevelUp()">Continue 🌊</button>
+</div>
+
+<!-- ══════════ WIN ══════════ -->
+<div id="win-screen" class="screen">
+  <span style="font-size:6rem;animation:heroFloat 1.4s ease-in-out infinite alternate;display:block;filter:drop-shadow(0 0 28px rgba(255,209,102,0.8))">🏆</span>
+  <div class="win-title">Ocean Champion!</div>
+  <p style="font-size:1.1rem;max-width:440px;text-align:center;line-height:1.85;color:rgba(232,244,248,0.9)">
+    🌊 You conquered all three ocean zones — from the Coral Kingdom all the way to the Crystal Depths!<br><br>
+    <strong>Nora</strong>, you are the <strong style="color:var(--aqua)">Ocean Math Champion!</strong> 🐠✨
+  </p>
+  <div class="trophy-box">
+    <span class="trophy-score" id="final-score">270</span>
+    <div class="trophy-lbl">Final MAP Score</div>
+  </div>
+  <button type="button" class="btn btn-dive" onclick="playAgain()">🔄 Play Again!</button>
+</div>
+
+</div><!-- #app -->
+
+<script>
+"use strict";
+
+/* ═══════════════════════════════════════
+   HELPERS
+═══════════════════════════════════════ */
+function ri(a, b)  { if (a > b) { var t = a; a = b; b = t; } return Math.floor(Math.random() * (b - a + 1)) + a; }
+function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+function gcd(a, b) { return b === 0 ? Math.abs(a) : gcd(b, a % b); }
+function lcm(a, b) { return Math.abs(a * b) / gcd(a, b); }
+
+function fy(arr) {
+  var a = arr.slice();
+  for (var i = a.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var tmp = a[i]; a[i] = a[j]; a[j] = tmp;
+  }
+  return a;
+}
+
+function makeProblem(q, ans, hint, type, fixedChoices) {
+  var choices;
+  if (fixedChoices) {
+    choices = fixedChoices;
+  } else {
+    var num = (typeof ans === "number") ? ans : parseFloat(ans);
+    if (!isNaN(num) && typeof ans !== "string") {
+      var seen = {};
+      seen[num] = true;
+      var base = Math.max(Math.abs(num), 4);
+      var deltas = [1, 2, 3, 4, 5, 7, 10, Math.ceil(base * 0.1), Math.ceil(base * 0.2), Math.ceil(base * 0.4), 6, 8, 9];
+      var wrongs = [];
+      var att = 0;
+      while (wrongs.length < 3 && att < 300) {
+        var d = deltas[att % deltas.length];
+        var s = (att % 2 === 0) ? 1 : -1;
+        var w = Math.round((num + s * d) * 100) / 100;
+        if (!seen[w]) { seen[w] = true; wrongs.push(w); }
+        att++;
+      }
+      var fb = 1;
+      while (wrongs.length < 3) { if (!seen[num + fb]) wrongs.push(num + fb); fb++; }
+      choices = fy([ans].concat(wrongs.slice(0, 3)));
+    }
+  }
+  return { question: q, answer: ans, hint: hint, type: type, choices: choices };
+}
+
+/* ═══════════════════════════════════════
+   GRADE 6 — CORAL KINGDOM
+   Ratios, rates, % change, algebra intro,
+   negatives, stats, circle geo, expressions,
+   unit convert, fraction divide
+═══════════════════════════════════════ */
+function gen6th() {
+  var mathTypes = ["ratio6","rate6","pct6","algebra6","neg6","stats6","circle6","expr6","convert6","fracdiv6"];
+  var wordThemes = ["coral reef","sea turtles","clownfish","jellyfish","starfish","oysters","seahorses"];
+  var probs = [];
+  for (var i = 0; i < 200; i++) probs.push(math6(pick(mathTypes)));
+  for (var i = 0; i < 50;  i++) probs.push(word6(pick(wordThemes)));
+  return fy(probs);
+}
+
+function math6(type) {
+  var q, ans, hint, choices;
+  switch (type) {
+    case "ratio6": {
+      var a = ri(2,8), b = ri(2,8), m = ri(2,6);
+      q = "Ratio is " + a + ":" + b + ". If the first part = " + (a*m) + ", what is the second part?";
+      ans = b * m; hint = "Scale both parts of the ratio by the same multiplier!"; break;
+    }
+    case "rate6": {
+      var spd = ri(15,80), t = ri(2,8);
+      q = "A dolphin swims " + spd + " km/hr. How far in " + t + " hours?";
+      ans = spd * t; hint = "Distance = Speed x Time"; break;
+    }
+    case "pct6": {
+      var p = pick([10,20,25,50,75]), n = ri(2,20) * 10;
+      q = "What is " + p + "% of " + n + "?";
+      ans = Math.round(n * p / 100); hint = "Multiply by the percent, then divide by 100!"; break;
+    }
+    case "algebra6": {
+      var a = ri(2,9), b = ri(1,20), x = ri(1,10);
+      q = "Solve: " + a + "x + " + b + " = " + (a*x+b) + ". Find x.";
+      ans = x; hint = "Subtract the constant, then divide by the coefficient!"; break;
+    }
+    case "neg6": {
+      var a = -ri(1,20), b = ri(1,20);
+      q = "(" + a + ") + " + b + " = ?";
+      ans = a + b; hint = "Start at the negative number and count up!"; break;
+    }
+    case "stats6": {
+      var nums = [ri(1,25), ri(1,25), ri(1,25), ri(1,25), ri(1,25)];
+      nums.sort(function(a,b){return a-b;});
+      if (Math.random() > 0.5) {
+        var sum = nums[0]+nums[1]+nums[2]+nums[3]+nums[4];
+        q = "Mean of: " + nums.join(", ");
+        ans = Math.round(sum / 5 * 10) / 10; hint = "Add all values, divide by how many there are!";
+      } else {
+        q = "Median of: " + nums.join(", ");
+        ans = nums[2]; hint = "The median is the middle number when sorted!";
+      }
+      break;
+    }
+    case "circle6": {
+      var r = ri(3,14);
+      if (Math.random() > 0.5) {
+        q = "Area of a circle with radius " + r + " (use pi = 3.14, round to nearest whole):";
+        ans = Math.round(3.14 * r * r); hint = "Area = pi x r x r";
+      } else {
+        q = "Circumference of a circle with radius " + r + " (use pi = 3.14, round to nearest whole):";
+        ans = Math.round(2 * 3.14 * r); hint = "Circumference = 2 x pi x r";
+      }
+      break;
+    }
+    case "expr6": {
+      var a = ri(2,8), b = ri(1,12), x = ri(1,9);
+      q = "Evaluate: " + a + "x - " + b + " when x = " + x;
+      ans = a*x - b; hint = "Substitute x then solve!"; break;
+    }
+    case "convert6": {
+      var opts = [
+        {u1:"km",u2:"m",f:1000}, {u1:"kg",u2:"g",f:1000},
+        {u1:"hr",u2:"min",f:60}, {u1:"m",u2:"cm",f:100}
+      ];
+      var o = pick(opts), v = ri(2,15);
+      q = "Convert " + v + " " + o.u1 + " to " + o.u2 + ".";
+      ans = v * o.f; hint = "Multiply by " + o.f + "!"; break;
+    }
+    case "fracdiv6": {
+      var n1=ri(1,5), d1=ri(2,6), n2=ri(1,5), d2=ri(2,6);
+      var rn = n1*d2, rd = d1*n2, g = gcd(rn,rd);
+      q = n1 + "/" + d1 + " divided by " + n2 + "/" + d2 + " = ? (numerator, denominator = " + (rd/g) + ")";
+      ans = rn/g; hint = "Flip the second fraction and multiply!"; break;
+    }
+    default: { var a=ri(10,99),b=ri(2,9); q=a+"x"+b+"=?"; ans=a*b; hint="Multiply!"; }
+  }
+  return makeProblem(q, ans, hint, "math", choices);
+}
+
+function word6(theme) {
+  var chars = ["Marine biologist Sofia","Diver Isla","Ocean explorer Zoe","Scientist Dr. Coral","Researcher Maya"];
+  var char = pick(chars);
+  var templates = [
+    function() { var r=ri(2,6),p=ri(3,12); return {q:char+" finds "+theme+" and coral in a "+r+":1 ratio. There are "+(r*p)+" "+theme+". How many coral?", ans:p, hint:"Divide by the ratio!"}; },
+    function() { var s=ri(10,60),t=ri(2,7),b=ri(5,30); return {q:char+" swims "+s+" m/min for "+t+" minutes plus "+b+" bonus meters. Total meters?", ans:s*t+b, hint:"Multiply then add the bonus!"}; },
+    function() { var tot=ri(40,200),p=pick([10,20,25,50]); return {q:char+" studies "+tot+" "+theme+". "+p+"% are rare. How many rare ones?", ans:Math.round(tot*p/100), hint:"Find the percentage of the total!"}; },
+    function() { var ns=[ri(10,80),ri(10,80),ri(10,80),ri(10,80)]; return {q:char+" records depths: "+ns.join(", ")+" meters. Mean depth?", ans:Math.round((ns[0]+ns[1]+ns[2]+ns[3])/4), hint:"Add all depths and divide by 4!"}; },
+    function() { var a=ri(2,8),b=ri(5,25),x=ri(2,9); return {q:char+" collects "+a+" "+theme+" per dive plus "+b+" bonus. After "+x+" dives, total?", ans:a*x+b, hint:"Multiply then add the bonus!"}; }
+  ];
+  var t = pick(templates)();
+  return makeProblem(t.q, t.ans, t.hint, "word");
+}
+
+/* ═══════════════════════════════════════
+   GRADE 7 — MIDNIGHT TRENCH
+   Proportions, % change, linear equations,
+   two-step equations, inequalities,
+   probability, surface area, scientific
+   notation, slope, integer operations
+═══════════════════════════════════════ */
+function gen7th() {
+  var mathTypes = ["prop7","pctchg7","linear7","twostep7","ineq7","prob7","surfarea7","scino7","slope7","intops7"];
+  var wordThemes = ["bioluminescent fish","deep-sea vents","anglerfish","giant squid","pressure","sonar waves","dark zone currents"];
+  var probs = [];
+  for (var i = 0; i < 200; i++) probs.push(math7(pick(mathTypes)));
+  for (var i = 0; i < 50;  i++) probs.push(word7(pick(wordThemes)));
+  return fy(probs);
+}
+
+function math7(type) {
+  var q, ans, hint, choices;
+  switch (type) {
+    case "prop7": {
+      var a=ri(2,8), b=ri(3,15), c=ri(2,6);
+      q = "Solve the proportion: " + a + "/" + b + " = " + (a*c) + "/?";
+      ans = b*c; hint = "Cross-multiply to solve!"; break;
+    }
+    case "pctchg7": {
+      var orig = ri(20,200), nv = ri(10,300);
+      var chg = Math.round(Math.abs(nv-orig)/orig*100);
+      q = "Value changed from " + orig + " to " + nv + ". Percent " + (nv>=orig?"increase":"decrease") + " (round to nearest whole %)?";
+      ans = chg; hint = "|New - Old| / Old x 100"; break;
+    }
+    case "linear7": {
+      var m=ri(1,6), b=ri(-10,10), x=ri(-5,10);
+      q = "y = " + m + "x + (" + b + "). What is y when x = " + x + "?";
+      ans = m*x+b; hint = "Substitute x and evaluate!"; break;
+    }
+    case "twostep7": {
+      var a=ri(2,8), b=ri(1,15), x=ri(1,10);
+      q = "Solve: " + a + "x + " + b + " = " + (a*x+b) + ". Find x.";
+      ans = x; hint = "Step 1: subtract the constant. Step 2: divide!"; break;
+    }
+    case "ineq7": {
+      var a=ri(2,6), b=ri(1,20), x=ri(1,10);
+      q = a + "x + " + b + " <= " + (a*x+b) + ". Largest whole-number value of x?";
+      ans = x; hint = "Solve like an equation, check the inequality sign!"; break;
+    }
+    case "prob7": {
+      var tot=ri(8,24), fav=ri(1,tot-1), g=gcd(fav,tot);
+      q = fav + " out of " + tot + " fish are rare. Probability numerator (denominator = " + (tot/g) + ")?";
+      ans = fav/g; hint = "Favorable / Total, then simplify!"; break;
+    }
+    case "surfarea7": {
+      var l=ri(3,12), w=ri(2,8), h=ri(2,6);
+      q = "Surface area of a rectangular prism: " + l + " x " + w + " x " + h + " =?";
+      ans = 2*(l*w + w*h + l*h); hint = "SA = 2(lw + wh + lh)"; break;
+    }
+    case "scino7": {
+      var base=ri(1,9), exp=pick([2,3,4,5,6]);
+      q = base + " x 10^" + exp + " written as a whole number = ?";
+      ans = base * Math.pow(10, exp); hint = "Move the decimal right by the exponent!"; break;
+    }
+    case "slope7": {
+      var x1=ri(-4,4), y1=ri(-4,4), run=ri(1,6), rise=ri(-5,5);
+      var x2=x1+run, y2=y1+rise;
+      q = "Slope between (" + x1 + "," + y1 + ") and (" + x2 + "," + y2 + ")? (decimal if needed)";
+      ans = Math.round(rise/run*100)/100; hint = "Slope = (y2 - y1) / (x2 - x1)"; break;
+    }
+    case "intops7": {
+      var a=ri(-12,12), b=ri(-12,12);
+      q = "(" + a + ") x (" + b + ") = ?";
+      ans = a*b; hint = "Negative x Negative = Positive. Negative x Positive = Negative."; break;
+    }
+    default: { var a=ri(10,99),b=ri(2,9); q=a+" x "+b+"=?"; ans=a*b; hint="Multiply!"; }
+  }
+  return makeProblem(q, ans, hint, "math", choices);
+}
+
+function word7(theme) {
+  var char = pick(["Deep-sea researcher Dr. Aria","Trench explorer Ivy","Marine engineer Nora","Oceanographer Dr. Mia","Submarine pilot Leila"]);
+  var templates = [
+    function() { var orig=ri(20,150),p=pick([10,20,25,50]); var nv=Math.round(orig*(1+p/100)); return {q:char+" measured "+orig+" "+theme+". Population grew "+p+"%. New count?", ans:nv, hint:"New = original x (1 + percent/100)"}; },
+    function() { var m=ri(2,5),b=ri(10,50),x=ri(3,10); return {q:"Depth formula: P = "+m+"d + "+b+". At depth "+x+", pressure = ?", ans:m*x+b, hint:"Substitute d into the formula!"}; },
+    function() { var a=ri(2,7),b=ri(5,20),tot=ri(25,80); var x=Math.floor((tot-b)/a); if(x<1)x=1; return {q:char+" needs "+a+"x + "+b+" <= "+(a*x+b)+". Max whole-number x?", ans:x, hint:"Solve the inequality for x!"}; },
+    function() { var a=ri(3,8),b=ri(4,12),c=ri(2,5); return {q:char+" maps depth: "+a+"/"+b+" = "+(a*c)+"/?. Find the missing value.", ans:b*c, hint:"Cross-multiply and divide!"}; },
+    function() { var x1=ri(0,5),y1=ri(0,5),run=ri(1,5),rise=ri(-4,4); return {q:"Sub moves from ("+x1+","+y1+") to ("+(x1+run)+","+(y1+rise)+"). Slope of path?", ans:Math.round(rise/run*100)/100, hint:"Slope = rise / run"}; }
+  ];
+  var t = pick(templates)();
+  return makeProblem(t.q, t.ans, t.hint, "word");
+}
+
+/* ═══════════════════════════════════════
+   GRADE 8 — CRYSTAL DEPTHS
+   Pythagorean theorem, systems of equations,
+   quadratics, functions, transformations,
+   volume of 3D shapes, square roots,
+   exponent rules, y-intercept, statistics
+═══════════════════════════════════════ */
+function gen8th() {
+  var mathTypes = ["pyth8","system8","quad8","func8","transform8","vol8","sqrt8","exprule8","yint8","stats8"];
+  var wordThemes = ["hydrothermal vents","crystal caves","pressure domes","sonar mapping","luminescent coral","ocean trenches","mineral deposits"];
+  var probs = [];
+  for (var i = 0; i < 200; i++) probs.push(math8(pick(mathTypes)));
+  for (var i = 0; i < 50;  i++) probs.push(word8(pick(wordThemes)));
+  return fy(probs);
+}
+
+function math8(type) {
+  var q, ans, hint, choices;
+  switch (type) {
+    case "pyth8": {
+      var trips = [[3,4,5],[5,12,13],[8,15,17],[6,8,10],[9,12,15],[7,24,25],[20,21,29]];
+      var t = pick(trips);
+      if (Math.random() > 0.4) {
+        q = "Right triangle: legs " + t[0] + " and " + t[1] + ". Hypotenuse = ?";
+        ans = t[2]; hint = "c squared = a squared + b squared";
+      } else {
+        q = "Right triangle: hypotenuse " + t[2] + ", one leg " + t[0] + ". Other leg = ?";
+        ans = t[1]; hint = "b squared = c squared - a squared";
+      }
+      break;
+    }
+    case "system8": {
+      var x=ri(1,8), y=ri(1,8);
+      q = "System: x + y = " + (x+y) + " and x - y = " + (x-y) + ". Find x.";
+      ans = x; hint = "Add the two equations to eliminate y!"; break;
+    }
+    case "quad8": {
+      var r1=ri(1,7), r2=ri(1,7);
+      q = "Solve: x squared - " + (r1+r2) + "x + " + (r1*r2) + " = 0. Larger root?";
+      ans = Math.max(r1,r2); hint = "Factor as (x - a)(x - b) = 0!"; break;
+    }
+    case "func8": {
+      var m=ri(-4,6), b=ri(-8,8), x=ri(-3,8);
+      q = "f(x) = " + m + "x + " + b + ". What is f(" + x + ")?";
+      ans = m*x+b; hint = "Substitute x into the function!"; break;
+    }
+    case "transform8": {
+      var x=ri(-5,5), y=ri(-5,5), h=ri(-4,4), k=ri(-4,4);
+      q = "Translate point (" + x + "," + y + ") by vector (" + h + "," + k + "). New x-coordinate?";
+      ans = x+h; hint = "Add the translation values to each coordinate!"; break;
+    }
+    case "vol8": {
+      var r=ri(2,8), h=ri(3,12);
+      if (Math.random() > 0.5) {
+        q = "Volume of cylinder: radius = " + r + ", height = " + h + " (use pi = 3.14, round to nearest whole):";
+        ans = Math.round(3.14*r*r*h); hint = "V = pi x r squared x h";
+      } else {
+        q = "Volume of cone: radius = " + r + ", height = " + h + " (use pi = 3.14, round to nearest whole):";
+        ans = Math.round((1/3)*3.14*r*r*h); hint = "V = (1/3) x pi x r squared x h";
+      }
+      break;
+    }
+    case "sqrt8": {
+      var sq = pick([4,9,16,25,36,49,64,81,100,121,144,169,196,225]);
+      q = "Square root of " + sq + " = ?";
+      ans = Math.round(Math.sqrt(sq)); hint = "What number multiplied by itself gives this?"; break;
+    }
+    case "exprule8": {
+      var base=ri(2,5), e1=ri(2,4), e2=ri(1,3);
+      var rule = pick(["product","quotient","power"]);
+      if (rule === "product") {
+        q = base + "^" + e1 + " x " + base + "^" + e2 + " = " + base + "^?";
+        ans = e1+e2; hint = "Product rule: ADD the exponents!";
+      } else if (rule === "quotient") {
+        var big = Math.max(e1,e2)+1;
+        q = base + "^" + big + " / " + base + "^" + e1 + " = " + base + "^?";
+        ans = big-e1; hint = "Quotient rule: SUBTRACT the exponents!";
+      } else {
+        q = "(" + base + "^" + e1 + ")^" + e2 + " = " + base + "^?";
+        ans = e1*e2; hint = "Power rule: MULTIPLY the exponents!";
+      }
+      break;
+    }
+    case "yint8": {
+      var m=ri(-4,4), b=ri(-8,8), x=ri(1,8);
+      q = "Line: y = " + m + "x + " + b + ". What is the y-intercept?";
+      ans = b; hint = "The y-intercept is the value of b in y = mx + b!"; break;
+    }
+    case "stats8": {
+      var nums = [ri(1,30),ri(1,30),ri(1,30),ri(1,30),ri(1,30),ri(1,30)];
+      nums.sort(function(a,b){return a-b;});
+      if (Math.random() > 0.5) {
+        q = "Range of: " + nums.join(", ");
+        ans = nums[5] - nums[0]; hint = "Range = max - min";
+      } else {
+        var q3 = nums[4], q1 = nums[1];
+        q = "IQR of: " + nums.join(", ");
+        ans = q3 - q1; hint = "IQR = Q3 - Q1 (upper middle minus lower middle)";
+      }
+      break;
+    }
+    default: { var a=ri(2,9),e=ri(2,4); q=a+"^"+e+"=?"; ans=Math.pow(a,e); hint="Repeated multiplication!"; }
+  }
+  return makeProblem(q, ans, hint, "math", choices);
+}
+
+function word8(theme) {
+  var char = pick(["Deep researcher Dr. Zara","Crystal diver Ava","Abyss engineer Mia","Trench scientist Dr. Nadia","Ocean geologist Freya"]);
+  var templates = [
+    function() { var legs=pick([[3,4,5],[5,12,13],[8,15,17]]); return {q:char+" finds a triangular vent with legs "+legs[0]+"m and "+legs[1]+"m. Hypotenuse?", ans:legs[2], hint:"Pythagorean theorem: c squared = a squared + b squared"}; },
+    function() { var r=ri(2,7),h=ri(4,12); return {q:char+" measures a cylindrical chamber: r="+r+"m, h="+h+"m. Volume (pi=3.14, nearest whole)?", ans:Math.round(3.14*r*r*h), hint:"V = pi x r squared x h"}; },
+    function() { var m=ri(2,5),b=ri(10,50),x=ri(3,10); return {q:"Pressure formula: P = "+m+"d + "+b+". At depth "+x+"m, P = ?", ans:m*x+b, hint:"Substitute d and evaluate!"}; },
+    function() { var e1=ri(2,4),e2=ri(1,3),base=pick([2,3,5]); return {q:char+"'s sonar: "+base+"^"+e1+" x "+base+"^"+e2+" = "+base+"^?", ans:e1+e2, hint:"Product of powers: add the exponents!"}; },
+    function() { var x=ri(1,7),y=ri(1,7); return {q:"System: x + y = "+(x+y)+" and x - y = "+(x-y)+". Find x.", ans:x, hint:"Add both equations to eliminate y!"}; }
+  ];
+  var t = pick(templates)();
+  return makeProblem(t.q, t.ans, t.hint, "word");
+}
+
+/* ═══════════════════════════════════════
+   STATE
+═══════════════════════════════════════ */
+var TOTAL = 250;
+var PASS  = 0.90;
+var MAP_MIN = 238, MAP_MAX = 270;
+var GENS = [gen6th, gen7th, gen8th];
+
+var STATE = {
+  mapScore:     238,
+  lives:        3,
+  totalPoints:  0,
+  streak:       0,
+  currentZone:  0,
+  zones: [
+    { name:"Coral Kingdom",   emoji:"🐡", unlocked:true,  completed:false, answered:0, correct:0, problems:[], order:[], pos:0 },
+    { name:"Midnight Trench", emoji:"🦑", unlocked:false, completed:false, answered:0, correct:0, problems:[], order:[], pos:0 },
+    { name:"Crystal Depths",  emoji:"🦈", unlocked:false, completed:false, answered:0, correct:0, problems:[], order:[], pos:0 }
+  ]
+};
+
+/* ═══════════════════════════════════════
+   QUEUE — no repeats until all 250 seen
+═══════════════════════════════════════ */
+function initQueue(z, genFn) {
+  z.problems = genFn();
+  z.order    = fy(Array.from({length: TOTAL}, function(_,i){ return i; }));
+  z.pos      = 0;
+}
+
+function currentQ(z) {
+  if (z.pos >= TOTAL) {
+    z.order    = fy(Array.from({length: TOTAL}, function(_,i){ return i; }));
+    z.pos      = 0;
+    z.problems = GENS[STATE.currentZone]();
+  }
+  return z.problems[z.order[z.pos]];
+}
+
+function advQ(z) { z.pos++; }
+
+/* ═══════════════════════════════════════
+   PERSISTENCE
+═══════════════════════════════════════ */
+var SAVE_KEY = "oceanmath_v1";
+
+// Storage: window.name (works in Google Sites iframes) + fallbacks
+function _storeGet(key) {
+  try { var s=JSON.parse(window.name||"{}"); if (s[key]) return JSON.parse(s[key]); } catch(e) {}
+  try { var r=sessionStorage.getItem(key); if (r) return JSON.parse(r); } catch(e) {}
+  try { var r=localStorage.getItem(key);   if (r) return JSON.parse(r); } catch(e) {}
+  return null;
+}
+function _storeSet(key, val) {
+  var json = JSON.stringify(val);
+  try { var s={}; try{s=JSON.parse(window.name||"{}")||{};}catch(e){} s[key]=json; window.name=JSON.stringify(s); } catch(e) {}
+  try { sessionStorage.setItem(key, json); } catch(e) {}
+  try { localStorage.setItem(key, json);   } catch(e) {}
+}
+function _storeDel(key) {
+  try { var s={}; try{s=JSON.parse(window.name||"{}")||{};}catch(e){} delete s[key]; window.name=JSON.stringify(s); } catch(e) {}
+  try { sessionStorage.removeItem(key); } catch(e) {}
+  try { localStorage.removeItem(key);   } catch(e) {}
+}
+
+function save() {
+  try {
+    _storeSet(SAVE_KEY, {
+      mapScore:    STATE.mapScore,
+      lives:       STATE.lives,
+      totalPoints: STATE.totalPoints,
+      streak:      STATE.streak,
+      currentZone: STATE.currentZone,
+      zones: STATE.zones.map(function(z) {
+        return { unlocked:z.unlocked, completed:z.completed, answered:z.answered, correct:z.correct, order:z.order, pos:z.pos };
+      })
+    });
+  } catch(e) {}
+}
+
+function loadSave() {
+  try {
+    var s = _storeGet(SAVE_KEY);
+    if (!s || !s.zones || s.zones.length !== 3) return null;
+    return s;
+  } catch(e) { return null; }
+}
+
+function clearSave() { _storeDel(SAVE_KEY); }
+
+function applySnap(snap) {
+  STATE.mapScore    = snap.mapScore;
+  STATE.lives       = snap.lives;
+  STATE.totalPoints = snap.totalPoints;
+  STATE.streak      = snap.streak || 0;
+  STATE.currentZone = snap.currentZone || 0;
+  snap.zones.forEach(function(sz, i) {
+    var z = STATE.zones[i];
+    z.unlocked  = sz.unlocked;
+    z.completed = sz.completed;
+    z.answered  = sz.answered;
+    z.correct   = sz.correct;
+    z.problems  = GENS[i]();
+    z.order     = (Array.isArray(sz.order) && sz.order.length === TOTAL) ? sz.order : fy(Array.from({length:TOTAL},function(_,k){return k;}));
+    z.pos       = sz.pos || 0;
+  });
+}
+
+/* ═══════════════════════════════════════
+   SCREENS
+═══════════════════════════════════════ */
+function showScreen(id) {
+  document.querySelectorAll(".screen").forEach(function(s){ s.classList.remove("active"); });
+  document.getElementById(id).classList.add("active");
+}
+
+/* ═══════════════════════════════════════
+   START
+═══════════════════════════════════════ */
+function startGame() {
+  STATE.zones.forEach(function(z, i){ initQueue(z, GENS[i]); });
+  save();
+  updateMapUI();
+  showScreen("map-screen");
+}
+
+/* ═══════════════════════════════════════
+   MAP UI
+═══════════════════════════════════════ */
+function updateMapUI() {
+  document.getElementById("hud-map").textContent = STATE.mapScore;
+  document.getElementById("map-val").textContent = STATE.mapScore;
+  updateLives();
+  STATE.zones.forEach(function(z, i) {
+    var card  = document.getElementById("zcard-" + i);
+    var bar   = document.getElementById("zbar-" + i);
+    var ptext = document.getElementById("zptext-" + i);
+    var acc   = z.answered > 0 ? Math.round(z.correct / z.answered * 100) : 0;
+    card.className = "zone-card";
+    if (!z.unlocked) {
+      card.classList.add("locked"); ptext.textContent = "🔒 Locked";
+    } else if (z.completed) {
+      card.classList.add("completed"); bar.style.width = "100%";
+      ptext.textContent = "✅ Done! " + acc + "% correct";
+    } else {
+      card.classList.add(i === STATE.currentZone ? "current" : "available");
+      var pct = Math.round(z.answered / TOTAL * 100);
+      bar.style.width = pct + "%";
+      ptext.textContent = z.answered > 0 ? (pct + "% done · " + acc + "% correct") : "0% Complete";
+    }
+  });
+  var pct = Math.max(0, Math.min(100, (STATE.mapScore - MAP_MIN) / (MAP_MAX - MAP_MIN) * 100));
+  document.getElementById("map-bar").style.width = pct + "%";
+}
+
+function updateLives() {
+  var h = "💙".repeat(Math.max(0, STATE.lives)) + "🖤".repeat(Math.max(0, 3 - STATE.lives));
+  document.getElementById("hud-lives").textContent = h;
+}
+
+/* ═══════════════════════════════════════
+   ENTER ZONE
+═══════════════════════════════════════ */
+function enterZone(idx) {
+  var z = STATE.zones[idx];
+  if (!z.unlocked) return;
+  STATE.currentZone = idx;
+  if (!z.problems.length) initQueue(z, GENS[idx]);
+  showQuestion();
+  showScreen("question-screen");
+}
+
+/* ═══════════════════════════════════════
+   BUDDIES
+═══════════════════════════════════════ */
+var BUDDIES = [
+  { name:"Marina 🐠",  face:"🐠",  msgs:["You can do this!","Stay focused!","Brilliant thinking!","Keep swimming!"] },
+  { name:"Pearl 🐚",   face:"🐚",  msgs:["You are amazing!","So close!","Trust yourself!","Pearl-fect!"] },
+  { name:"Coral 🪸",   face:"🪸",  msgs:["Dive deep!","Math is your superpower!","I believe in you!","You got this!"] }
+];
+
+/* ═══════════════════════════════════════
+   SHOW QUESTION
+═══════════════════════════════════════ */
+function showQuestion() {
+  var z = STATE.zones[STATE.currentZone];
+  var q = currentQ(z);
+
+  document.getElementById("q-zone").textContent  = z.emoji + " " + z.name;
+  document.getElementById("q-num").textContent   = "Question " + (z.answered + 1) + " of " + TOTAL;
+  document.getElementById("q-prog").style.width  = (z.answered / TOTAL * 100) + "%";
+  document.getElementById("q-streak").textContent = "🔥 " + STATE.streak + " streak";
+  document.getElementById("q-pts").textContent    = "🪸 " + STATE.totalPoints + " pearls";
+
+  var buddy = BUDDIES[z.answered % 3];
+  document.getElementById("buddy-face").textContent = buddy.face;
+  document.getElementById("buddy-name").textContent = buddy.name;
+  document.getElementById("buddy-msg").textContent  = buddy.msgs[z.answered % buddy.msgs.length];
+
+  var badge = document.getElementById("q-badge");
+  badge.textContent = (q.type === "word") ? "📖 Word Problem" : "🔢 Math";
+  badge.className   = "q-badge " + (q.type === "word" ? "badge-word" : "badge-math");
+  document.getElementById("q-text").textContent = q.question;
+  document.getElementById("q-hint").textContent = q.hint ? ("💡 Hint: " + q.hint) : "";
+
+  document.getElementById("feedback").className  = "feedback";
+  document.getElementById("feedback").textContent = "";
+  document.getElementById("next-wrap").style.display = "none";
+
+  var area = document.getElementById("answer-area");
+  area.innerHTML = "";
+
+  if (q.choices && q.choices.length) {
+    var grid = document.createElement("div");
+    grid.className = "choices-grid";
+    q.choices.forEach(function(c) {
+      var btn = document.createElement("button");
+      btn.type = "button"; btn.className = "choice-btn";
+      btn.textContent = c;
+      btn.onclick = function(){ checkMC(c, q, btn, grid); };
+      grid.appendChild(btn);
+    });
+    area.appendChild(grid);
+  } else {
+    var wrap = document.createElement("div");
+    wrap.className = "free-wrap";
+    var inp = document.createElement("input");
+    inp.className = "free-input"; inp.id = "free-inp"; inp.type = "text";
+    inp.placeholder = "Type your answer…";
+    inp.setAttribute("autocomplete","off"); inp.setAttribute("autocorrect","off");
+    inp.setAttribute("autocapitalize","none"); inp.setAttribute("spellcheck","false");
+    inp.setAttribute("inputmode", q.type === "word" ? "text" : "decimal");
+    inp.addEventListener("keydown", function(e){ if (e.key === "Enter") checkFree(q); });
+    var btn = document.createElement("button");
+    btn.type = "button"; btn.className = "btn-check"; btn.textContent = "Check!";
+    btn.onclick = function(){ checkFree(q); };
+    wrap.appendChild(inp); wrap.appendChild(btn);
+    area.appendChild(wrap);
+    var isTouch = ("ontouchstart" in window) || (navigator.maxTouchPoints > 0);
+    if (!isTouch) { setTimeout(function(){ inp.focus(); }, 100); }
+  }
+}
+
+function checkMC(chosen, q, btn, grid) {
+  grid.querySelectorAll(".choice-btn").forEach(function(b){ b.disabled = true; });
+  var ok = String(chosen).toLowerCase() === String(q.answer).toLowerCase() ||
+           (typeof chosen === "number" && Math.abs(chosen - q.answer) < 0.05);
+  btn.classList.add(ok ? "correct-ans" : "wrong-ans");
+  if (!ok) {
+    grid.querySelectorAll(".choice-btn").forEach(function(b){
+      if (String(b.textContent).toLowerCase() === String(q.answer).toLowerCase()) b.classList.add("correct-ans");
+    });
+  }
+  handleResult(ok, q);
+}
+
+function checkFree(q) {
+  var inp = document.getElementById("free-inp");
+  if (!inp || inp.value.trim() === "") return;
+  inp.disabled = true;
+  var val = inp.value.trim();
+  var ua  = isNaN(val) ? val.toLowerCase() : Math.round(parseFloat(val) * 100) / 100;
+  var ca  = (typeof q.answer === "string") ? q.answer.toLowerCase() : Math.round(q.answer * 100) / 100;
+  var ok  = String(ua) === String(ca) || (typeof ua === "number" && typeof ca === "number" && Math.abs(ua - ca) < 0.05);
+  inp.style.borderColor = ok ? "var(--teal)" : "var(--coral2)";
+  handleResult(ok, q);
+}
+
+function handleResult(ok, q) {
+  var z  = STATE.zones[STATE.currentZone];
+  z.answered++; advQ(z);
+
+  var fb = document.getElementById("feedback");
+  if (ok) {
+    z.correct++;
+    STATE.streak++;
+    STATE.totalPoints += 10 + (STATE.streak >= 5 ? 5 : 0) + (STATE.streak >= 10 ? 5 : 0);
+    if (z.answered % 5 === 0) STATE.mapScore = Math.min(MAP_MAX, STATE.mapScore + 1);
+    var msgs = ["🌊 Correct! Amazing!","✨ Brilliant!","🐠 You nailed it!","🪸 Pearl-fect!","💙 Outstanding!","🦈 Fearless answer!"];
+    fb.textContent = msgs[Math.floor(Math.random() * msgs.length)] + (STATE.streak >= 5 ? " 🔥 " + STATE.streak + " streak BONUS!" : "");
+    fb.className = "feedback show ok";
+  } else {
+    STATE.streak = 0;
+    STATE.lives  = Math.max(0, STATE.lives - 1);
+    updateLives();
+    fb.textContent = "Not quite — the answer is " + q.answer + ". Keep going! 💙";
+    fb.className = "feedback show bad";
+  }
+
+  document.getElementById("q-streak").textContent = "🔥 " + STATE.streak + " streak";
+  document.getElementById("q-pts").textContent    = "🪸 " + STATE.totalPoints + " pearls";
+
+  if (z.answered >= TOTAL) {
+    save(); setTimeout(zoneEnd, 1300);
+  } else {
+    if (z.answered % 50 === 0 && STATE.lives < 3) { STATE.lives = Math.min(3, STATE.lives + 1); updateLives(); }
+    document.getElementById("next-wrap").style.display = "block";
+    save();
+  }
+}
+
+function nextQuestion() { showQuestion(); }
+
+/* ═══════════════════════════════════════
+   ZONE END
+═══════════════════════════════════════ */
+function zoneEnd() {
+  var z      = STATE.zones[STATE.currentZone];
+  var acc    = z.answered > 0 ? z.correct / z.answered : 0;
+  var passed = acc >= PASS;
+
+  var icons  = ["🐡","🦑","🦈"];
+  var titles = ["Coral Kingdom Cleared!","Midnight Trench Conquered!","Crystal Depths Defeated!"];
+  var descs  = [
+    passed ? "You hit 90%+! The Midnight Trench is now unlocked! 🦑" : "Aim for 90% to unlock the next zone. You can do it!",
+    passed ? "Incredible! The Crystal Depths await! 🦈" : "Almost! Hit 90% to unlock the Crystal Depths!",
+    "Nora, you defeated ALL three ocean zones! You are the Ocean Math Champion! 🏆"
+  ];
+
+  document.getElementById("lu-icon").textContent  = passed ? icons[STATE.currentZone]  : "💪";
+  document.getElementById("lu-title").textContent = passed ? titles[STATE.currentZone] : "Keep Diving!";
+  document.getElementById("lu-desc").textContent  = descs[STATE.currentZone];
+  document.getElementById("lu-correct").textContent = z.correct;
+  document.getElementById("lu-acc").textContent     = Math.round(acc * 100) + "%";
+
+  var gain = Math.round((z.correct / TOTAL) * 11);
+  STATE.mapScore = Math.min(MAP_MAX, STATE.mapScore + gain);
+  document.getElementById("lu-gain").textContent = "+" + gain;
+
+  if (passed) {
+    z.completed = true;
+    if (STATE.currentZone < 2) {
+      STATE.zones[STATE.currentZone + 1].unlocked = true;
+      document.getElementById("lu-btn").textContent = "Enter " + STATE.zones[STATE.currentZone + 1].name + " 🌊";
+    } else {
+      document.getElementById("lu-btn").textContent = "Claim the Trophy! 🏆";
+    }
+    save(); spawnConfetti();
+  } else {
+    z.answered = 0; z.correct = 0;
+    initQueue(z, GENS[STATE.currentZone]);
+    document.getElementById("lu-btn").textContent = "Try Again! 💙";
+    save();
+  }
+  showScreen("levelup-screen");
+}
+
+function afterLevelUp() {
+  var z = STATE.zones[STATE.currentZone];
+  if (z.completed && STATE.currentZone === 2) {
+    clearSave();
+    document.getElementById("final-score").textContent = STATE.mapScore;
+    spawnConfetti(); spawnConfetti();
+    showScreen("win-screen");
+    return;
+  }
+  if (z.completed && STATE.currentZone < 2) STATE.currentZone++;
+  save(); updateMapUI(); showScreen("map-screen");
+}
+
+function playAgain() {
+  clearSave();
+  STATE.mapScore = 238; STATE.lives = 3; STATE.totalPoints = 0; STATE.streak = 0; STATE.currentZone = 0;
+  STATE.zones.forEach(function(z, i){ z.unlocked = (i===0); z.completed = false; z.answered = 0; z.correct = 0; initQueue(z, GENS[i]); });
+  updateMapUI(); showScreen("map-screen");
+}
+
+/* ═══════════════════════════════════════
+   CONFETTI
+═══════════════════════════════════════ */
+function spawnConfetti() {
+  var cols = ["#00e5ff","#d4a8ff","#ff6b8a","#ffd166","#00c4b4","#a8ffec","#b44fff"];
+  for (var i = 0; i < 90; i++) {
+    var el = document.createElement("div"); el.className = "confetti-piece";
+    var s = 7 + Math.random() * 9;
+    el.style.cssText = "left:" + (Math.random()*100) + "vw;width:" + s + "px;height:" + s + "px;background:" + cols[Math.floor(Math.random()*cols.length)] + ";border-radius:" + (Math.random()>0.5?"50%":"3px") + ";animation-duration:" + (1.5+Math.random()*2.5) + "s;animation-delay:" + (Math.random()*0.8) + "s";
+    document.body.appendChild(el);
+    setTimeout(function(){ el.remove(); }, 4500);
+  }
+}
+
+/* ═══════════════════════════════════════
+   ATMOSPHERE
+═══════════════════════════════════════ */
+function buildAtmosphere() {
+  var bg = document.getElementById("ocean-bg");
+  if (!bg) return;
+  // Caustic light blobs
+  for (var i = 0; i < 5; i++) {
+    var c = document.createElement("div"); c.className = "caustic";
+    var s = 200 + Math.random() * 300;
+    c.style.cssText = "width:" + s + "px;height:" + s + "px;left:" + (Math.random()*90) + "%;top:" + (Math.random()*90) + "%;animation-duration:" + (6+Math.random()*6) + "s;animation-delay:" + (Math.random()*4) + "s";
+    bg.appendChild(c);
+  }
+  // Bubbles
+  for (var i = 0; i < 28; i++) {
+    var b = document.createElement("div"); b.className = "bubble";
+    var s = 5 + Math.random() * 18;
+    b.style.cssText = "left:" + (Math.random()*95) + "%;bottom:" + (Math.random()*25) + "%;width:" + s + "px;height:" + s + "px;animation-duration:" + (5+Math.random()*8) + "s;animation-delay:" + (Math.random()*8) + "s";
+    bg.appendChild(b);
+  }
+  // Light rays
+  for (var i = 0; i < 7; i++) {
+    var r = document.createElement("div"); r.className = "ray";
+    r.style.cssText = "left:" + (8+i*13) + "%;height:" + (30+Math.random()*40) + "%;animation-duration:" + (4+Math.random()*4) + "s;animation-delay:" + (Math.random()*3) + "s";
+    bg.appendChild(r);
+  }
+  // Seaweed
+  for (var i = 0; i < 10; i++) {
+    var sw = document.createElement("div"); sw.className = "seaweed";
+    var h = 40 + Math.random() * 80, w = 8 + Math.random() * 14;
+    sw.style.cssText = "left:" + (4+i*9+Math.random()*4) + "%;width:" + w + "px;height:" + h + "px;animation-duration:" + (3+Math.random()*3) + "s;animation-delay:" + (Math.random()*2) + "s";
+    bg.appendChild(sw);
+  }
+  // Swimming fish
+  var fishEmojis = ["🐟","🐠","🐡","🦐","🦞"];
+  for (var i = 0; i < 6; i++) {
+    var f = document.createElement("div"); f.className = "fish-bg";
+    f.textContent = pick(fishEmojis);
+    f.style.cssText = "left:-60px;top:" + (10+Math.random()*80) + "%;animation-duration:" + (18+Math.random()*20) + "s;animation-delay:" + (Math.random()*15) + "s";
+    bg.appendChild(f);
+  }
+}
+
+/* ═══════════════════════════════════════
+   RESUME CHECK
+═══════════════════════════════════════ */
+function resumeGame() { updateMapUI(); showScreen("map-screen"); }
+
+function startOver() {
+  clearSave();
+  document.getElementById("resume-panel").style.display = "none";
+  document.getElementById("start-btn").style.display = "";
+  STATE.mapScore = 238; STATE.lives = 3; STATE.totalPoints = 0; STATE.streak = 0; STATE.currentZone = 0;
+  STATE.zones.forEach(function(z, i) {
+    z.unlocked = (i === 0); z.completed = false; z.answered = 0; z.correct = 0;
+    z.problems = []; z.order = []; z.pos = 0;
+  });
+}
+
+function checkResume() {
+  try {
+    var snap = loadSave();
+    if (!snap) return;
+    try { applySnap(snap); } catch(e) { clearSave(); return; }
+
+    var z       = STATE.zones[STATE.currentZone];
+    var acc     = z.answered > 0 ? Math.round(z.correct / z.answered * 100) : 0;
+    var pctDone = Math.round(z.answered / 250 * 100);
+
+    var detail = document.getElementById("resume-detail");
+    if (detail) {
+      detail.innerHTML =
+        z.emoji + " <strong style=\"color:var(--foam)\">" + z.name + "</strong>"
+      + " &nbsp;·&nbsp; Q" + z.answered + " / 250"
+      + (z.answered > 0 ? " &nbsp;·&nbsp; " + pctDone + "% done &nbsp;·&nbsp; " + acc + "% correct" : "")
+      + "<br><span style=\"color:var(--gold)\">MAP Score: " + snap.mapScore + "</span>";
+    }
+
+    var panel    = document.getElementById("resume-panel");
+    var startBtn = document.getElementById("start-btn");
+    if (panel)    panel.style.display = "flex";
+    if (startBtn) startBtn.style.display = "none";
+  } catch(e) { clearSave(); }
+}
+
+/* ═══════════════════════════════════════
+   iPAD / iOS
+═══════════════════════════════════════ */
+function setupTouch() {
+  document.body.style.touchAction = "manipulation";
+  document.addEventListener("touchmove", function(e) {
+    if (e.target === document.body || e.target === document.getElementById("app")) e.preventDefault();
+  }, { passive: false });
+  document.addEventListener("touchstart", function(e) {
+    var b = e.target.closest("button,.zone-card:not(.locked),.choice-btn");
+    if (b) b.style.opacity = "0.80";
+  }, { passive: true });
+  document.addEventListener("touchend", function(e) {
+    var b = e.target.closest("button,.zone-card:not(.locked),.choice-btn");
+    if (b) setTimeout(function(){ b.style.opacity = ""; }, 150);
+  }, { passive: true });
+  window.addEventListener("resize", function() {
+    var a = document.querySelector(".screen.active");
+    if (a) { var f = a.querySelector("input:focus"); if (f) setTimeout(function(){ f.scrollIntoView({behavior:"smooth",block:"center"}); }, 100); }
+  });
+}
+
+/* ═══════════════════════════════════════
+   INIT — wait for DOM
+═══════════════════════════════════════ */
+function init() {
+  buildAtmosphere();
+  setupTouch();
+  checkResume();
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", init);
+} else {
+  init();
+}
+</script>
+</body>
+</html>
